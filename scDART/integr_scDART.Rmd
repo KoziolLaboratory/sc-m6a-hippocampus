@@ -1,0 +1,146 @@
+---
+title: "integr_scDART"
+output: html_document
+---
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+library(Seurat)
+library(tidyverse)
+
+# Filenames
+yth_filename <- "6J-3M-2ws-V2-3-YTH_RSEC_MolsPerCell.csv"
+ythmut_filename <- "6J-3M-V2-3-mut_RSEC_MolsPerCell.csv"
+
+# Initialize the Seurat object with the raw (non-normalized data)
+yth_mat <- read.csv(yth_filename, skip = 6, row.names = 1)
+yth_count_mat <- t(yth_mat)
+rownames(yth_count_mat) <- str_replace(rownames(yth_count_mat),'[.]','-')
+scRNA_yth <- CreateSeuratObject(counts = yth_count_mat, assay = "RNA", project = '6J_yth')
+#
+ythmut_mat <- read.csv(ythmut_filename, skip = 6, row.names = 1)
+ythmut_count_mat <- t(ythmut_mat)
+rownames(ythmut_count_mat) <- str_replace(rownames(ythmut_count_mat),'[.]','-')
+scRNA_ythmut <- CreateSeuratObject(counts = ythmut_count_mat, assay = "RNA", project = '6J_ythmut')
+
+# Mitochondrial & ribosomal
+scRNA_yth[["percent.mt"]] <- PercentageFeatureSet(scRNA_yth, pattern = "^mt-")
+scRNA_yth[["percent.rb"]] <- PercentageFeatureSet(scRNA_yth, pattern = "^n-R5")
+
+# Mitochondrial & ribosomal
+scRNA_ythmut[["percent.mt"]] <- PercentageFeatureSet(scRNA_ythmut, pattern = "^mt-")
+scRNA_ythmut[["percent.rb"]] <- PercentageFeatureSet(scRNA_ythmut, pattern = "^n-R5")
+```
+
+## Standard pre-processing workflow
+
+The steps below encompass the standard pre-processing workflow for scRNA-seq data in Seurat. These represent the selection and filtration of cells based on QC metrics, data normalization and scaling, and the detection of highly variable features.
+
+A few QC metrics commonly used include: 
+
+1. The number of unique genes detected in each cell.
+
+- Low-quality cells or empty droplets will often have very few genes
+
+- Cell doublets or multiplets may exhibit an aberrantly high gene count
+
+2. Similarly, the total number of molecules detected within a cell (correlates strongly with unique genes)
+
+3. The percentage of reads that map to the mitochondrial genome
+
+- Low-quality / dying cells often exhibit extensive mitochondrial contamination
+
+Let's see these metrics. The left plot corresponds to the number of unique genes; middle-left to the number of molecules per cell, the middle-right percentage of reads that map to the mitochondrial genome and the rightest percentage of ribosomal proteins.
+
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+# Visualize QC metrics as a violin plot
+# Left is number of unique genes per cell, middle-left number of molecules per cell, middle-right percentage of reads that map to the mitochondrial genome and rightest percentage of ribosomal proteins
+print(cat("YTH sample"))
+VlnPlot(scRNA_yth, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4, pt.size = 0)
+print(cat("YTH-mut sample"))
+VlnPlot(scRNA_ythmut, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4, pt.size = 0)
+```
+
+We will now filter cells that have unique feature counts over 6000 or less than 500 and cells that have >10% mitochondrial counts, and visualize the same plots with these data:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+print(cat("YTH sample"))
+scRNA_yth_filt <- subset(scRNA_yth, subset = nFeature_RNA > 500 & nFeature_RNA < 6000 & percent.mt <10)
+VlnPlot(scRNA_yth_filt, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4, pt.size = 0)
+print(cat("YTH-mut sample"))
+scRNA_ythmut_filt <- subset(scRNA_ythmut, subset = nFeature_RNA > 500 & nFeature_RNA < 6000 & percent.mt <10)
+VlnPlot(scRNA_ythmut_filt, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4, pt.size = 0)
+```
+
+## Before integration
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+# Merge into one seurat object
+merged_seurat <- merge(scRNA_yth_filt, y = scRNA_ythmut_filt, add.cell.ids = c("yth", "yth-mut"), project = "dartseq")
+# Normalize
+merged_seurat <- NormalizeData(merged_seurat)
+merged_seurat <- FindVariableFeatures(merged_seurat, selection.method = "vst", nfeatures = 2000)
+all.genes <- rownames(merged_seurat)
+merged_seurat <- ScaleData(merged_seurat, features = all.genes)
+merged_seurat <- RunPCA(merged_seurat, features = VariableFeatures(object = merged_seurat)) # the features = VariableFeatures makes the PCA to use only the 2000 most variable features we identified in the previous steps
+ElbowPlot(merged_seurat, ndims = 40)
+```
+
+We will choose 30 principal components.
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+merged_seurat <- FindNeighbors(merged_seurat, dims = 1:30)
+merged_seurat <- FindClusters(merged_seurat, resolution = 0.5) 
+table(merged_seurat@meta.data$seurat_clusters)
+merged_seurat <- RunUMAP(merged_seurat, dims = 1:30)
+DimPlot(merged_seurat, reduction = "umap", group.by = "orig.ident")
+```
+
+The clusters of yth and yth-mut are very similar, and it does not seem to be any clustering due to this condition - this suggests that the variability we see is biological and it is not due to technical issues, i.e., batch effect (if the latter was the case, we would be seing different clusters for each condition).
+
+Even though there is no apparent batch effect, we'll perform the steps that are usually carried out for integration and the removal of batch effects.
+
+## After integration
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+dart_list <- list()
+dart_list[["yth"]] <- scRNA_yth_filt
+dart_list[["yth_mut"]] <- scRNA_ythmut_filt
+
+for (i in 1:length(dart_list)) {
+  dart_list[[i]] <- NormalizeData(dart_list[[i]], verbose = F)
+  dart_list[[i]] <- FindVariableFeatures(dart_list[[i]], selection.method = "vst", nfeatures = 2000, verbose = F)
+}
+
+# select integration anchors
+anchors <- FindIntegrationAnchors(object.list = dart_list, dims = 1:30)
+integrated_seurat <- IntegrateData(anchorset = anchors, dims = 1:30)
+DefaultAssay(integrated_seurat) <- "integrated" # just in case. if this is set to RNA, we work with un-integrated data
+integrated_seurat <- ScaleData(integrated_seurat, verbose = F)
+integrated_seurat <- RunPCA(integrated_seurat, npcs = 30, verbose = F)
+integrated_seurat <- RunUMAP(integrated_seurat, reduction = "pca", dims = 1:30, verbose = F)
+DimPlot(integrated_seurat, reduction = "umap")
+DimPlot(integrated_seurat, reduction = "umap", split.by = "orig.ident") + NoLegend()
+```
+
+Data looks completely integrated, so we can relate cell clusters in each condition! Let's now look at the clusters in the integrated data.
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+integrated_seurat <- FindNeighbors(integrated_seurat, dims = 1:30, verbose = F)
+integrated_seurat <- FindClusters(integrated_seurat, verbose = F)
+DimPlot(integrated_seurat, label = T) + NoLegend()
+```
+
+Number of cells in each cluster:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+table(integrated_seurat@meta.data$seurat_clusters, integrated_seurat@meta.data$orig.ident)
+```
+
+Save seurat object:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+saveRDS(integrated_seurat, file = "scDART_integrated_seurat.rds")
+```
+
+
