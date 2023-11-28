@@ -137,6 +137,109 @@ Number of cells in each cluster:
 table(integrated_seurat@meta.data$seurat_clusters, integrated_seurat@meta.data$orig.ident)
 ```
 
+
+### Cell type markers based on differential expression
+
+Note that the differential expression analysis here looks for differentialy expressed genes that are conserved across the yth and yth-mut samples.
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+get_conserved <- function(cluster){
+        FindConservedMarkers(integrated_seurat,
+                             ident.1 = cluster,
+                             grouping.var = "orig.ident",
+                             only.pos = TRUE,
+                             min.pct = 0.1, 
+                             logfc.threshold = 0.3) %>%
+          #filter(`6J_yth_p_val_adj` <= 0.05) %>%
+          rownames_to_column(var = "gene") %>%
+          cbind(cluster_id = cluster, .)
+}
+
+n_clusters <- length(unique(integrated_seurat@meta.data$seurat_clusters))
+conserved_markers <- map_dfr(setdiff(0:(n_clusters-1), 13), get_conserved)
+
+conserved_13 <- FindConservedMarkers(integrated_seurat,
+                             ident.1 = 13,
+                             grouping.var = "orig.ident",
+                             only.pos = TRUE,
+                             min.pct = 0.1, 
+                             logfc.threshold = 0.1) %>%
+          rownames_to_column(var = "gene") %>%
+          cbind(cluster_id = 13, .)
+
+all_df <- bind_rows(conserved_markers, conserved_13)
+write.table(all_df, file = "scDART_DEgenes.csv", col.names = TRUE, quote = FALSE, row.names = FALSE, sep = "\t")
+
+```
+
+
+### Confounder plots per cluster
+
+In this section I plot confounder values per cluster.
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+integrated_seurat$orig.ident <- factor(x = integrated_seurat$orig.ident, levels = unique(integrated_seurat$orig.ident))
+VlnPlot(integrated_seurat, features = "percent.mt", pt.size = 0, split.by = "orig.ident", split.plot = TRUE, col = c("#F8766D", "#00BFC4")) 
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+VlnPlot(integrated_seurat, features = "percent.rb", pt.size = 0, split.by = "orig.ident", split.plot = TRUE, col = c("#F8766D", "#00BFC4"))  
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+VlnPlot(integrated_seurat, features = "nCount_RNA", pt.size = 0, split.by = "orig.ident", split.plot = TRUE, col = c("#F8766D", "#00BFC4"))  
+VlnPlot(integrated_seurat, features = "nFeature_RNA", pt.size = 0, split.by = "orig.ident", split.plot = TRUE, col = c("#F8766D", "#00BFC4")) 
+```
+
+
+## Cluster final plot
+
+Here I plot the cluster plot with the names of the cell types that identify each cluster.
+
+### 5 groups:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+oligodendrocytes <- c(2, 3, 5, 6, 7, 12, 13, 16)
+neurons <- c(11, 23)
+endothelial_cells <- c(26)
+immune_cells <- c(0, 1, 4, 8, 9, 10, 14, 15, 17, 18, 19, 20, 21, 24, 25, 27)
+astrocytes <- c(22)
+label_mat <- cbind(c(rep("Oligodendrocyte lineage", length(oligodendrocytes)), 
+                     rep("Neuronal lineage", length(neurons)),
+                     rep("Endothelial cells", length(endothelial_cells)),
+                     rep("Immune cells", length(immune_cells)),
+                     rep("Astrocytes", length(astrocytes))),
+                   c(oligodendrocytes, neurons, endothelial_cells, immune_cells, astrocytes))
+
+int_vec <- integrated_seurat$integrated_snn_res.0.8
+int_vec2 <- rep(NA, length(int_vec))
+
+for (x in unique(label_mat[,1])){
+  cl.x <- label_mat[label_mat[,1] == x,2]
+  int_vec2[which(int_vec %in% cl.x)] <- x
+}
+
+integrated_seurat$cluster <- int_vec2
+
+integrated_seurat$cluster <- factor(integrated_seurat$cluster, levels = c("Oligodendrocyte lineage", "Neuronal lineage", "Endothelial cells", "Immune cells", "Astrocytes"))
+
+DimPlot(integrated_seurat, group.by = "cluster", label = T) + NoLegend()
+DimPlot(integrated_seurat, group.by = "cluster", label = FALSE)
+DimPlot(integrated_seurat, group.by = "cluster", label = T , repel = T, label.size = 3) + NoLegend()
+```
+
+Violin plots:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+VlnPlot(integrated_seurat,
+        ncol = 1, 
+        features = c("Sox10", "Cldn11", "Mbp", "Lcp1", "Arpc2", "Arf6", "Snap25", "Atp1a3", "Clstn2", "Gja1", "Gfap", "Aldh1a1", "Esam", "Ly6c1", "Itm2a"), 
+        pt.size = 0) & theme(axis.title.x = element_blank(),
+                             axis.title.y = element_blank(),
+                             title = element_text(size = 6))
+```
+
+
 Save seurat object:
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE}
