@@ -1,0 +1,134 @@
+---
+title: "HEK_YTH-E_vs_E-YTH"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this script we compare C-to-U editing sites for YTH-E and E-YTH in HEK293T cell lines. 
+For obtaining these variants we have:
+
+In each replicate:
+
+- Kept only variants with FDR<1, m>= 2 (two editing events), k >= 10 (coverage >= 10)
+- Kept only variants with m/k >5%
+- Discarded SNPs: dbSNP
+
+In each sample (that consists of 3 replicates):
+
+- Kept only those variants present in at least 2/3 replicates
+
+Finally, we have:
+
+- Removed from the YTH-mut sample the variants in APOBEC and WT
+- Removed from YTH the variants in APOBEC and WT
+- Kept in the YTH sample only those variants with a frequency at least 1.5X higher than in YTH-mut sample
+
+### Distribution of m/k values:
+
+```{r V1, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+library(tidyverse)
+library(RColorBrewer)
+dir <- "/home/Magda_lab/maitenat/scratch60/dartseq_replicates/aligned"
+
+# Read data ----
+
+yth_v1 <- read.table(file.path(dir, "HEK293T-V1_yth_no-back-apo.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(yth_v1) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+ythmut_v1 <- read.table(file.path(dir, "HEK293T-V1_ythmut_no-back-apo.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(ythmut_v1) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+yth_diff_v1 <- read.table(file.path(dir, "HEK293T-V1_yth_filt-all.cims"), header = FALSE, fill = TRUE) %>%
+  as_tibble() %>%
+  select(1:7)
+colnames(yth_diff_v1) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+```
+
+
+```{r V2, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+yth_v2 <- read.table(file.path(dir, "HEK293T-V2_yth_no-back-apo.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(yth_v2) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+ythmut_v2 <- read.table(file.path(dir, "HEK293T-V2_ythmut_no-back-apo.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(ythmut_v2) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+yth_diff_v2 <- read.table(file.path(dir, "HEK293T-V2_yth_filt-all.cims"), header = FALSE, fill = TRUE) %>%
+  as_tibble() %>%
+  select(1:7)
+colnames(yth_diff_v2) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+all_diff <- bind_rows(v1 = yth_diff_v1, v2 = yth_diff_v2, .id = "id")
+
+all_diff %>%
+  ggplot(aes(`m/k`, fill = id, colour = id)) +
+  geom_histogram(position = "identity", alpha=0.7, binwidth = 0.01) +
+  scale_colour_manual(values = c("#9999CC", "#FFCCCC")) +
+  scale_fill_manual(values = c("#9999CC", "#FFCCCC")) +
+  theme_classic() 
+
+```
+
+### CDS plots
+
+#### YTH-E
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/metaplotR/HEK293T-V1_yth_filt-all.dist.measures.txt"
+m6a.dist <- read.delim(cds_file, header = T)
+trx_len <- m6a.dist$utr5_size + m6a.dist$cds_size + m6a.dist$utr3_size # Determine transcript length
+temp <- data.frame(m6a.dist$gene_name, m6a.dist$refseqID, trx_len)
+colnames(temp) <- c("gene_name", "gid", "trx_len") 
+temp.df <- temp[order(temp$gene_name, temp$gid, -temp$trx_len),]
+temp.df <- temp[!duplicated(temp$gene_name),]
+
+# limit m6a data to one transcript per gene (longest)
+m6a.dist <- m6a.dist[m6a.dist$refseqID %in% temp.df$gid,]
+
+ggplot(m6a.dist, aes(x = rel_location)) +
+  geom_histogram(fill="#9999CC") +
+  theme_classic()
+
+m6a.dist %>%
+  ggplot(aes(x = utr3_st)) +
+  geom_density(aes(y = ..count..), alpha=0.6, fill = "#8DA0CB", color = "#8DA0CB") +
+  xlim (-500,500) +
+  theme_classic()
+```
+
+#### YTH-E
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/metaplotR/HEK293T-V2_yth_filt-all.dist.measures.txt"
+m6a.dist <- read.delim(cds_file, header = T)
+trx_len <- m6a.dist$utr5_size + m6a.dist$cds_size + m6a.dist$utr3_size # Determine transcript length
+temp <- data.frame(m6a.dist$gene_name, m6a.dist$refseqID, trx_len)
+colnames(temp) <- c("gene_name", "gid", "trx_len") 
+temp.df <- temp[order(temp$gene_name, temp$gid, -temp$trx_len),]
+temp.df <- temp[!duplicated(temp$gene_name),]
+
+# limit m6a data to one transcript per gene (longest)
+m6a.dist <- m6a.dist[m6a.dist$refseqID %in% temp.df$gid,]
+
+ggplot(m6a.dist, aes(x = rel_location)) +
+  geom_histogram(fill="#FFCCCC") +
+  theme_classic()
+
+m6a.dist %>%
+  ggplot(aes(x = utr3_st)) +
+  geom_density(aes(y = ..count..), alpha=0.6, fill = "#8DA0CB", color = "#8DA0CB") +
+  xlim (-500,500) +
+  theme_classic()
+
+```

@@ -1,0 +1,262 @@
+---
+title: "dartseq replicates of mice hippocampus"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we show the variant count per sample, and the variant relationship between dart-seq replicates of mice hippocampus. 
+
+#### WT, V2
+
+Samples B17, B18, B19
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+library(tidyverse)
+library(VennDiagram)
+library(RColorBrewer)
+
+dir <- "/home/Magda_lab/maitenat/scratch60/dartseq_replicates/aligned"
+
+B17 <- read.table(file.path(dir, "B17-hippo-WT-rep1_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B17) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B17 there are %s variants", nrow(B17)))
+
+B18 <- read.table(file.path(dir, "B18-hippo-WT-rep2_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B18) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B18 there are %s variants", nrow(B18)))
+
+B19 <- read.table(file.path(dir, "B19-hippo-WT-rep3_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B19) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B19 there are %s variants", nrow(B19)))
+
+myCol <- brewer.pal(3, "Pastel2")
+
+B17 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B17_ids
+
+B18 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B18_ids
+
+B19 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B19_ids
+
+venn.diagram(
+  x = list(B17_ids, B18_ids, B19_ids),
+  category.names = c("B17" , "B18" , "B19"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot1
+grid::grid.draw(venn_plot1)
+
+```
+
+#### YTH, V2
+
+Samples B20, B21, B22
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B20 <- read.table(file.path(dir, "B20-hippo-V2-3-YTH-rep1_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B20) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B20 there are %s variants", nrow(B20)))
+
+
+B21 <- read.table(file.path(dir, "B21-hippo-V2-3-YTH-rep2_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B21) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B21 there are %s variants", nrow(B21)))
+
+
+B22 <- read.table(file.path(dir, "B22-hippo-V2-3-YTH-rep3_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B22) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B22 there are %s variants", nrow(B22)))
+
+B20 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B20_ids
+
+B21 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B21_ids
+
+B22 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B22_ids
+
+venn.diagram(
+  x = list(B20_ids, B21_ids, B22_ids),
+  category.names = c("B20" , "B21" , "B22"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot2
+grid::grid.draw(venn_plot2)
+```
+
+#### YTH-MUT, V2
+
+Samples B23, B24, B25
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B23 <- read.table(file.path(dir, "B23-hippo-V2-3-Mut-rep1_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B23) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B23 there are %s variants", nrow(B23)))
+
+
+B24 <- read.table(file.path(dir, "B24-hippo-V2-3-Mut-rep2_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B24) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B24 there are %s variants", nrow(B24)))
+
+
+B25 <- read.table(file.path(dir, "B25-hippo-V2-3-Mut-rep3_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B25) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B25 there are %s variants", nrow(B25)))
+
+B23 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B23_ids
+
+B24 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B24_ids
+
+B25 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B25_ids
+
+venn.diagram(
+  x = list(B23_ids, B24_ids, B25_ids),
+  category.names = c("B23" , "B24" , "B25"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot3
+grid::grid.draw(venn_plot3)
+
+```
+
+#### APOBEC, V2
+
+Samples B26, B27, B28
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B26 <- read.table(file.path(dir, "B26-hippo-V2-3-Apo-rep1_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B26) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B26 there are %s variants", nrow(B26)))
+
+B27 <- read.table(file.path(dir, "B27-hippo-V2-3-Apo-rep2_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B27) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B27 there are %s variants", nrow(B27)))
+
+B28 <- read.table(file.path(dir, "B28-hippo-V2-3-Apo-rep3_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B28) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B28 there are %s variants", nrow(B28)))
+
+B26 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B26_ids
+
+B27 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B27_ids
+
+B28 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B28_ids
+
+venn.diagram(
+  x = list(B26_ids, B27_ids, B28_ids),
+  category.names = c("B26" , "B27" , "B28"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot4
+grid::grid.draw(venn_plot4)
+```

@@ -1,0 +1,185 @@
+---
+title: "Hippocampus-V2 variants"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Here we make some plots of the C>U variants found in the hippocampus sample. For obtaining these variants we have:
+
+In each replicate:
+
+- Kept only variants with FDR<1, m>= 2 (two editing events), k >= 10 (coverage >= 10)
+- Kept only variants with m/k >5%
+- Discarded SNPs: Mouse Genome Project (mgp_REL2021_snps) and Genome Reference Consortium Mouse Build 39 (GCA_000001635.9)
+
+In each sample (that consists of 3 replicates):
+
+- Kept only those variants present in at least 2/3 replicates
+
+Finally, we have:
+
+- Removed from the YTH-mut sample the variants in APOBEC and WT
+- Removed from YTH the variants in APOBEC and WT
+- Kept in the YTH sample only those variants with a frequency at least 1.5X higher than in YTH-mut sample
+
+## m/k distribution plot
+
+All plots with same Y axis:
+
+Beware that in these first plots, the variants from yth-mut sample have not been removed. I did it this way because we did it this way with the data with no replicates, but let me know if you prefer it with the yth sample where only variants with a frequency at least 1.5X higher than in YTH-mut sample are kept.
+
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+## m/k density
+
+library(tidyverse)
+library(RColorBrewer)
+dir <- "/home/Magda_lab/maitenat/scratch60/dartseq_replicates/aligned"
+
+# Read data ----
+
+yth <- read.table(file.path(dir, "hippo-V2_yth_no-back-apo.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(yth) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+ythmut <- read.table(file.path(dir, "hippo-V2_ythmut_no-back-apo.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(ythmut) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+back <- read.table(file.path(dir, "B17-B18-B19_2out3.bed"), header = FALSE) %>%
+  as_tibble()
+colnames(back) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+apo <- read.table(file.path(dir, "B26-B27-B28_2out3.bed"), header = FALSE) %>%
+  as_tibble()
+colnames(apo) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+yth_diff <- read.table(file.path(dir, "hippo-V2_yth_filt-all.cims"), header = FALSE, fill = TRUE) %>%
+  as_tibble() %>%
+  select(1:7)
+colnames(yth_diff) <- c("chr", "start", "end", "name", "score", "strand", "m/k")
+
+yth %>%
+  ggplot(aes(`m/k`)) +
+  geom_histogram(position = "identity", fill = "white", binwidth = 0.01, colour = "#8DA0CB") +
+  theme_classic() +
+  theme(legend.title=element_blank())
+```
+
+## CDS plots
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/metaplotR/hippo-V2_yth_filt-all.dist.measures.txt"
+m6a.dist <- read.delim(cds_file, header = T)
+trx_len <- m6a.dist$utr5_size + m6a.dist$cds_size + m6a.dist$utr3_size # Determine transcript length
+temp <- data.frame(m6a.dist$gene_name, m6a.dist$refseqID, trx_len)
+colnames(temp) <- c("gene_name", "gid", "trx_len") 
+temp.df <- temp[order(temp$gene_name, temp$gid, -temp$trx_len),]
+temp.df <- temp[!duplicated(temp$gene_name),]
+
+# limit m6a data to one transcript per gene (longest)
+m6a.dist <- m6a.dist[m6a.dist$refseqID %in% temp.df$gid,]
+
+## YTH-mut
+ythmut_cds_file <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/metaplotR/hippo-V2_ythmut_no-back-apo.dist.measures.txt"
+ythmut.dist <- read.delim(ythmut_cds_file, header = T)
+trx_len <- ythmut.dist$utr5_size + ythmut.dist$cds_size + ythmut.dist$utr3_size # Determine transcript length
+temp <- data.frame(ythmut.dist$gene_name, ythmut.dist$refseqID, trx_len)
+colnames(temp) <- c("gene_name", "gid", "trx_len") 
+temp.df <- temp[order(temp$gene_name, temp$gid, -temp$trx_len),]
+temp.df <- temp[!duplicated(temp$gene_name),]
+ythmut.dist <- ythmut.dist[ythmut.dist$refseqID %in% temp.df$gid,]
+
+## Mock
+mock_cds_file <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/metaplotR/B17-B18-B19_2out3.dist.measures.txt"
+mock.dist <- read.delim(mock_cds_file, header = T)
+trx_len <- mock.dist$utr5_size + mock.dist$cds_size + mock.dist$utr3_size # Determine transcript length
+temp <- data.frame(mock.dist$gene_name, mock.dist$refseqID, trx_len)
+colnames(temp) <- c("gene_name", "gid", "trx_len") 
+temp.df <- temp[order(temp$gene_name, temp$gid, -temp$trx_len),]
+temp.df <- temp[!duplicated(temp$gene_name),]
+mock.dist <- mock.dist[mock.dist$refseqID %in% temp.df$gid,]
+
+## apobec
+apo_cds_file <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/metaplotR/B26-B27-B28_2out3.dist.measures.txt"
+apo.dist <- read.delim(apo_cds_file, header = T)
+trx_len <- apo.dist$utr5_size + apo.dist$cds_size + apo.dist$utr3_size # Determine transcript length
+temp <- data.frame(apo.dist$gene_name, apo.dist$refseqID, trx_len)
+colnames(temp) <- c("gene_name", "gid", "trx_len") 
+temp.df <- temp[order(temp$gene_name, temp$gid, -temp$trx_len),]
+temp.df <- temp[!duplicated(temp$gene_name),]
+apo.dist <- apo.dist[apo.dist$refseqID %in% temp.df$gid,]
+
+all.dist <- bind_rows(yth = m6a.dist, ythmut = ythmut.dist, wt = mock.dist, apo = apo.dist, .id = "id")
+
+all.dist %>%
+  ggplot(aes(x = utr3_st, fill = id, color = id)) +
+  geom_density(aes(y = ..count..), alpha=0.6) +
+  scale_fill_brewer(palette="Set2") +
+  scale_colour_brewer(palette="Set2") +
+  xlim (-500,500) +
+  theme_classic()
+
+m6a.dist %>%
+  ggplot(aes(x = utr3_st)) +
+  geom_density(aes(y = ..count..), alpha=0.6, fill = "#8DA0CB", color = "#8DA0CB") +
+  xlim (-500,500) +
+  theme_classic()  
+
+```
+
+## Localization plots
+
+### YTH
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+blank_theme <- theme_minimal()+
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.border = element_blank(),
+    panel.grid=element_blank(),
+    axis.ticks = element_blank(),
+    plot.title=element_text(size=14, face="bold")
+  )
+
+yth_annot <- read.delim(file.path(dir, "hippo-V2_yth_filt-all_annot_symbol.txt"), header = TRUE, sep = "\t") %>%
+  as_tibble()
+
+yth_annot_table <- table(yth_annot$annot)
+yth_annot_table0 <- tibble(localization = names(yth_annot_table), variants = as.numeric(yth_annot_table))
+
+ggplot(yth_annot_table0, aes(x = "", y = variants, fill = localization)) +
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x = element_blank())
+
+yth_annot_table0 %>%
+  mutate(variant_percentage = variants/sum(variants))
+
+```
+
+### YTH-MUT
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+ythmut_annot <- read.delim(file.path(dir, "hippo-V2_ythmut_no-back-apo_annot_symbol.bed"), header = TRUE, sep = "\t") %>%
+  as_tibble()
+
+ythmut_annot_table <- table(ythmut_annot$annot)
+ythmut_annot_table0 <- tibble(localization = names(ythmut_annot_table), variants = as.numeric(ythmut_annot_table))
+
+ggplot(ythmut_annot_table0, aes(x = "", y = variants, fill = localization)) +
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x = element_blank())
+
+ythmut_annot_table0 %>%
+  mutate(variant_percentage = variants/sum(variants))
+```

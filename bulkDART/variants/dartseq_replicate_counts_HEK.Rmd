@@ -1,0 +1,426 @@
+---
+title: "dartseq replicates of HEK293-T"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we show the variant count per sample, and the variant relationship between dart-seq replicates of HEK293-T cell line. 
+
+#### YTH, V1
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+library(tidyverse)
+library(VennDiagram)
+library(RColorBrewer)
+
+dir <- "/home/Magda_lab/maitenat/scratch60/dartseq_replicates/aligned"
+
+B01 <- read.table(file.path(dir, "B01-293T-V1rep2-YTH_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B01) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B01 there are %s variants", nrow(B01)))
+
+B10 <- read.table(file.path(dir, "B10-293T-V1rep3-YTH_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B10) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B10 there are %s variants", nrow(B10)))
+
+yth_5 <- read.table("/GPFS/Magda_lab_temp/maitenat/dartseq_HEK/clean/aligned/5-V1-YTH-1130_FKDL210342153-1a_1_trimmed_R1_rename_joint_low-string.cims", header = FALSE) %>%
+  as_tibble()
+colnames(yth_5) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample yth_5 there are %s variants", nrow(yth_5)))
+
+myCol <- brewer.pal(3, "Pastel2")
+
+B01 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B01_ids
+
+B10 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B10_ids
+
+yth_5 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> yth_5_ids
+
+venn.diagram(
+  x = list(B01_ids, B10_ids, yth_5_ids),
+  category.names = c("B01" , "B10" , "yth_5"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot1
+grid::grid.draw(venn_plot1)
+
+```
+
+#### YTH-MUT, V1
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B02 <- read.table(file.path(dir, "B02-293T-V1rep2-Mut_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B02) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B02 there are %s variants", nrow(B02)))
+
+
+B11 <- read.table(file.path(dir, "B11-293T-V1rep3-Mut_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B11) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B11 there are %s variants", nrow(B11)))
+
+
+mut_6 <- read.table("/GPFS/Magda_lab_temp/maitenat/dartseq_HEK/clean/aligned/6-V1-mut-1130_FKDL210342151-1a_1_trimmed_R1_rename_joint_low-string.cims", header = FALSE) %>%
+  as_tibble()
+colnames(mut_6) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample mut_6 there are %s variants", nrow(mut_6)))
+
+B02 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B02_ids
+
+B11 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B11_ids
+
+mut_6 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> mut_6_ids
+
+venn.diagram(
+  x = list(B02_ids, B11_ids, mut_6_ids),
+  category.names = c("B02" , "B11" , "mut_6"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot2
+grid::grid.draw(venn_plot2)
+```
+
+#### APOBEC, V1
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B03 <- read.table(file.path(dir, "B03-293T-V1rep1-Apo_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B03) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B03 there are %s variants", nrow(B03)))
+
+
+B04 <- read.table(file.path(dir, "B04-293T-V1rep2-Apo_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B04) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B04 there are %s variants", nrow(B04)))
+
+
+B12 <- read.table(file.path(dir, "B12-293T-V1rep3-Apo_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B12) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B12 there are %s variants", nrow(B12)))
+
+B03 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B03_ids
+
+B04 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B04_ids
+
+B12 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B12_ids
+
+venn.diagram(
+  x = list(B03_ids, B04_ids, B12_ids),
+  category.names = c("B03" , "B04" , "B12"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot3
+grid::grid.draw(venn_plot3)
+
+```
+
+#### MOCK, V1
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B09 <- read.table(file.path(dir, "B09-293T-V2rep2-Mock_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B09) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B09 there are %s variants", nrow(B09)))
+
+B13 <- read.table(file.path(dir, "B13-293T-V1rep3-Mock_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B13) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B13 there are %s variants", nrow(B13)))
+
+mock_7 <- read.table("/GPFS/Magda_lab_temp/maitenat/dartseq_HEK/clean/aligned/7-mock-1130_FKDL210342152-1a_1_trimmed_R1_rename_joint_low-string.cims", header = FALSE) %>%
+  as_tibble()
+colnames(mock_7) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample mock_7 there are %s variants", nrow(mock_7)))
+
+B09 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B09_ids
+
+B13 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B13_ids
+
+mock_7 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> mock_7_ids
+
+venn.diagram(
+  x = list(B09_ids, B13_ids, mock_7_ids),
+  category.names = c("B09" , "B13" , "mock_7"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot4
+grid::grid.draw(venn_plot4)
+```
+
+#### YTH, V2
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B06 <- read.table(file.path(dir, "B06-293T-V2rep2-YTH_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B06) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B06 there are %s variants", nrow(B06)))
+
+B14 <- read.table(file.path(dir, "B14-293T-V1rep3-YTH_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B14) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B14 there are %s variants", nrow(B14)))
+
+yth_8 <- read.table("/GPFS/Magda_lab_temp/maitenat/dartseq_HEK/clean/aligned/8-V2-3-YTH-1130_FKDL210342154-1a_1_trimmed_R1_rename_joint_low-string.cims", header = FALSE) %>%
+  as_tibble()
+colnames(yth_8) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample yth_8 there are %s variants", nrow(yth_8)))
+
+B06 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B06_ids
+
+B14 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B14_ids
+
+yth_8 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> yth_8_ids
+
+venn.diagram(
+  x = list(B06_ids, B14_ids, yth_8_ids),
+  category.names = c("B06" , "B14" , "yth_8"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot5
+grid::grid.draw(venn_plot5)
+```
+
+
+#### MUT, V2
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B07 <- read.table(file.path(dir, "B07-293T-V2rep2-Mut_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B07) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B07 there are %s variants", nrow(B07)))
+
+B15 <- read.table(file.path(dir, "B15-293T-V1rep3-Mut_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B15) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B15 there are %s variants", nrow(B15)))
+
+mut_9 <- read.table("/GPFS/Magda_lab_temp/maitenat/dartseq_HEK/clean/aligned/9-V2-3-mut-1130_FKDL210342155-1a_1_trimmed_R1_rename_joint_low-string.cims", header = FALSE) %>%
+  as_tibble()
+colnames(mut_9) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample mut_9 there are %s variants", nrow(mut_9)))
+
+B07 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B07_ids
+
+B15 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B15_ids
+
+mut_9 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> mut_9_ids
+
+venn.diagram(
+  x = list(B07_ids, B15_ids, mut_9_ids),
+  category.names = c("B07" , "B15" , "mut_9"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot6
+grid::grid.draw(venn_plot6)
+```
+
+#### APOBEC, V2
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+B08 <- read.table(file.path(dir, "B08-293T-V2rep2-Apo_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B08) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B08 there are %s variants", nrow(B08)))
+
+B16 <- read.table(file.path(dir, "B16-293T-V1rep3-Apo_1_rename_joint_filtered.cims"), header = FALSE) %>%
+  as_tibble()
+colnames(B16) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample B16 there are %s variants", nrow(B16)))
+
+apo_4 <- read.table("/GPFS/Magda_lab_temp/maitenat/dartseq_HEK/clean/aligned/4-V4-1130_FKDL210342150-1a_1_trimmed_R1_rename_joint_low-string.cims", header = FALSE) %>%
+  as_tibble()
+colnames(apo_4) <- c("chr", "start", "end", "name", "score", "strand", "k", "m", "fdr", "count", "m/k")
+
+print(sprintf("In the sample apo_4 there are %s variants", nrow(apo_4)))
+
+B08 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B08_ids
+
+B16 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> B16_ids
+
+apo_4 %>%
+  mutate(id = sprintf("%s:%s-%s:%s", chr, start, end, strand)) %>%
+  pull(id) -> apo_4_ids
+
+venn.diagram(
+  x = list(B08_ids, B16_ids, apo_4_ids),
+  category.names = c("B08" , "B16" , "apo_4"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot7
+grid::grid.draw(venn_plot7)
+```
