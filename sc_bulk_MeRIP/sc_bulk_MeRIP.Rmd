@@ -1,0 +1,97 @@
+---
+title: "Comparison between sc, bulk dartseq and MeRIP"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we show the Venn diagrams of the bulk dart-seq and single-cell dart-seq m6a sites. Note that for single cell, these are unique sites, i.e., if a site is m6a in two cells, it's only counted once. Also, the single cell sites are without wt and apobec. Then, we calculate from that intersection how many are captured by MeRIP.
+
+We also show how many variants in bulk and single-cell, independently, are captured by MeRIP.
+
+Finally, we show the intersection of the genes captured by bulk dart-seq, single-cell dart-seq and MeRIP.
+
+We start with the Venn diagrams of the bulk dart-seq and single-cell dart-seq:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+library(VennDiagram)
+library(RColorBrewer)
+library(tidyverse)
+
+myCol <- brewer.pal(3, "Pastel2")[1:2]
+
+m6a_bulk <- system("wc -l /GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/hippo-V2_yth_filt-all_annot.bed", intern = TRUE) %>% 
+  strsplit(" ") %>% 
+  unlist() %>%
+  .[1] %>%
+  as.numeric()
+m6a_bulk <- m6a_bulk - 1 # because of the header
+
+m6a_bulk_merip <- system("wc -l /GPFS/Magda_lab_temp/maitenat/sc_bulk_merip/yth_bulk_merip_common.bed", intern = TRUE) %>% 
+  strsplit(" ") %>% 
+  unlist() %>%
+  .[1] %>%
+  as.numeric()
+
+bulk_merip_df <- tibble(x = c("Included in MeRIP", "Not included in MeRIP"),
+                           y = c(m6a_bulk_merip, m6a_bulk - m6a_bulk_merip))
+
+bulk_merip_df %>%
+  ggplot(aes(x = x, y = y, fill = x)) + 
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  scale_fill_manual(values = c("#996699", "#669999")) +
+  ylab("No. edits in bulk dartseq") +
+  xlab("") +
+  theme(legend.position="none")
+
+```
+
+Intersection of the genes captured by bulk dart-seq, single-cell dart-seq and MeRIP intersection. Note that for the MeRIP, 141 regions could not be annotated to a gene. 
+
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+sc_filename <- "/GPFS/Magda_lab_temp/maitenat/sc_bulk_merip/yth_sc_10X_unique.bed"
+bulk_filename <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/hippo-V2_yth_filt-all_annot_symbol.txt"
+merip_filename <- "/GPFS/Magda_lab_temp/maitenat/MeRIP/intersect_merip_annot_nodup.bed"
+
+sc_data <- read.table(sc_filename, header = TRUE)
+sc_genes <- unique(sc_data$gene)
+
+bulk_genes <- read.delim(bulk_filename, header = TRUE, sep = "\t") %>%
+  pull(mgi_symbol) %>%
+  unique()
+
+merip_genes <- read.table(merip_filename, header = FALSE) %>%
+  pull(V14) %>%
+  unique()
+
+myCol <- brewer.pal(3, "Pastel2")
+
+venn.diagram(
+  x = list(sc_genes, bulk_genes, merip_genes),
+  category.names = c("single-cell" , "bulk" , "MeRIP"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot2
+grid::grid.draw(venn_plot2)
+
+```
+

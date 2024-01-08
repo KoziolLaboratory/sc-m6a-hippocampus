@@ -4,11 +4,15 @@ This repository contains the code associated with the article titled "Single cel
 
 ## Introduction
 
-The code in this repository is organized into two main folders:
+The code in this repository is organized into four main folders:
 
 1. `bulkDART`: This folder contains the code used for the analysis of bulk dartseq data.
 
 2. `scDART`: This folder contains the code used for the analysis of single-cell dartseq data.
+
+3. `MeRIP`: This folder contains scripts related to m6A RNA immunoprecipitation (MeRIP).
+
+4. `sc_bulk_MeRIP`: This folder contains scripts related to the comparison of the results obtained by MeRIP, single-cell dartseq and bulk dartseq results.
 
 
 ## Code Overview and usage
@@ -43,10 +47,24 @@ For the analysis of HEK293T cell line data, the following scripts are called, in
 7. `obtain_CU_2out3.R`
 8. `filter_yth.sbatch`
 9. `call_metaPlotR_hg19.sbatch`
-10. `HEK_YTH-E_vs_E-YTH.Rmd``
-
+10. `HEK_YTH-E_vs_E-YTH.Rmd`
 
 ### scDART
+
+TODO
+
+### MeRIP
+
+The `MeRIP` folder contains scripts and data related to m6A RNA immunoprecipitation (MeRIP). This technique is used to enrich m6A-modified RNAs and identify m6A sites at a transcriptome-wide level. 
+
+(...)
+n. `annotate_genes_to_peaks.sh`
+n+1. `venn_diagrams.Rmd`
+
+### sc_bulk_MeRIP
+
+The `sc_bulk_MeRIP` folder contains a script for the comparison of the results obtained by MeRIP, single-cell dartseq and bulk dartseq data. The script is `sc_bulk_MeRIP.Rmd`.
+
 
 
 ## Requirements

@@ -1,0 +1,55 @@
+---
+title: "Venn diagrams"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we show the Venn diagrams of the methylated genes captured by MeRIP replicates.
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+library(VennDiagram)
+library(RColorBrewer)
+library(tidyverse)
+
+dir <- "/GPFS/Magda_lab_temp/maitenat/MeRIP/"
+
+rep1 <- read.table(file.path(dir, "merip_rep1_annot_nodup.bed"), header = FALSE)
+rep2 <- read.table(file.path(dir, "merip_rep2_annot_nodup.bed"), header = FALSE)
+rep3 <- read.table(file.path(dir, "merip_rep3_annot_nodup.bed"), header = FALSE)
+
+rep1_genes <- unique(rep1$V14)
+rep2_genes <- unique(rep2$V14)
+rep3_genes <- unique(rep3$V14)
+
+myCol <- brewer.pal(3, "Pastel2")
+
+venn.diagram(
+  x = list(rep1_genes, rep2_genes, rep3_genes),
+  category.names = c("rep1" , "rep2" , "rep3"),
+  filename = NULL,
+   # Circles
+        lwd = 2,
+        lty = 'blank',
+        fill = myCol,
+        
+        # Numbers
+        cex = .6,
+        fontface = "bold",
+        fontfamily = "sans",
+        
+        # Set names
+        cat.cex = 0.6,
+        cat.fontface = "bold",
+        cat.default.pos = "outer",
+        cat.fontfamily = "sans",
+        rotation = 1
+  ) -> venn_plot1
+grid::grid.draw(venn_plot1)
+
+
+
+```
+
