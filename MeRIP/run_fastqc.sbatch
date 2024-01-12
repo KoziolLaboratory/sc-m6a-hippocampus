@@ -15,4 +15,4 @@ R1=$1
 R2=$2
 outdir=$3
 
-fastqc -t 12 -o $3 $R1 $R2
+fastqc -t 12 -o $outdir $R1 $R2
