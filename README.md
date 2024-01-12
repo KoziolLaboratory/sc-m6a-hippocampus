@@ -76,7 +76,30 @@ The `sc_bulk_MeRIP` folder contains a script for the comparison of the results o
 
 ## Requirements
 
-...
+TO BE COMPLETED
+
+This project requires the following tools and libraries:
+
+### Software
+- [R](https://www.r-project.org/) (version 3.5 or later)
+- [HISAT2](http://daehwankimlab.github.io/hisat2/) for read alignment
+- [samtools](http://www.htslib.org/) for manipulating aligned reads
+- [cutadapt](https://cutadapt.readthedocs.io/en/stable/) for adapter trimming
+
+
+### R Libraries
+- [ggplot2](https://ggplot2.tidyverse.org/) for data visualization
+- [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) for differential expression analysis
+
+### Data
+- Reference genome (e.g., GRCm39 for mouse)
+- Adapter sequences for the sequencing platform used
+- Raw sequencing data in FASTQ format
+
+### Job Scheduler
+- [SLURM](https://slurm.schedmd.com/overview.html) for job scheduling on a high-performance computing cluster. Many of the scripts in this project are written as SLURM batch scripts and require SLURM for execution. However, these SLURM scripts are essentially shell scripts. If you are not using SLURM, you can adapt them to run as regular bash scripts with some minimal knowledge of bash scripting.
+
+Please ensure all dependencies are installed and the raw data is available in the appropriate directories before running the scripts.
 
 ## License
 
