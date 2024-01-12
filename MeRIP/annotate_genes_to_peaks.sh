@@ -4,10 +4,13 @@
 
 module load bedtools/2.29.2
 
-yth_merip=/GPFS/Magda_lab_temp/maitenat/MeRIP/reps_intersect.bed
-merip_rep1=/GPFS/Magda_lab_temp/maitenat/MeRIP/WT_rep1_peaks.xls
-merip_rep2=/GPFS/Magda_lab_temp/maitenat/MeRIP/WT_rep2_peaks.xls
-merip_rep3=/GPFS/Magda_lab_temp/maitenat/MeRIP/WT_rep3_peaks.xls
+# Peak files of each replicate
+merip_rep1=$1
+merip_rep2=$2
+merip_rep3=$3
+# Replicate intersection bed file
+yth_merip=$4
+# GTF file
 gtf=/GPFS/Magda_lab_permanent/maitenat/mm39.ncbiRefSeq.gtf
 
 # Annotate the gene symbol to the MeRIP bed file using gtf file

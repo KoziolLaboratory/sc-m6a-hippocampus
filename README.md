@@ -57,9 +57,16 @@ TODO
 
 The `MeRIP` folder contains scripts and data related to m6A RNA immunoprecipitation (MeRIP). This technique is used to enrich m6A-modified RNAs and identify m6A sites at a transcriptome-wide level. 
 
-(...)
-n. `annotate_genes_to_peaks.sh`
-n+1. `venn_diagrams.Rmd`
+For the analysis of this data, the following scripts are called, in this order:
+
+1. `run_cutadapt.sbatch`
+2. `run_fastqc.sbatch`
+3. `run_multiqc.sbatch`
+4. `run_HISAT2.sbatch`
+5. `peakcalling.sbatch`
+6. `intersect_peaks.sbatch`
+7. `annotate_genes_to_peaks.sh`
+8. `venn_diagrams.Rmd`
 
 ### sc_bulk_MeRIP
 
