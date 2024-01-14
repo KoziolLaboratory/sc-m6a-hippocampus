@@ -59,14 +59,15 @@ The `MeRIP` folder contains scripts and data related to m6A RNA immunoprecipitat
 
 For the analysis of this data, the following scripts are called, in this order:
 
-1. `run_cutadapt.sbatch`
-2. `run_fastqc.sbatch`
-3. `run_multiqc.sbatch`
-4. `run_HISAT2.sbatch`
-5. `peakcalling.sbatch`
-6. `intersect_peaks.sbatch`
-7. `annotate_genes_to_peaks.sh`
-8. `venn_diagrams.Rmd`
+1. `rm_rRNA.sbatch`
+2. `run_cutadapt.sbatch`
+3. `run_fastqc.sbatch`
+4. `run_multiqc.sbatch`
+5. `run_HISAT2.sbatch`
+6. `peakcalling.sbatch`
+7. `intersect_peaks.sbatch`
+8. `annotate_genes_to_peaks.sh`
+9. `venn_diagrams.Rmd`
 
 ### sc_bulk_MeRIP
 
