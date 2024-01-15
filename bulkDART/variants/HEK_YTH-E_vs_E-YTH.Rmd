@@ -105,6 +105,15 @@ m6a.dist %>%
   geom_density(aes(y = ..count..), alpha=0.6, fill = "#8DA0CB", color = "#8DA0CB") +
   xlim (-500,500) +
   theme_classic()
+
+# count the number of variants with rel_location between 0 and 1
+sum(m6a.dist$rel_location >= 0 & m6a.dist$rel_location < 1)/nrow(m6a.dist)
+# count the number of variants with rel_location between 1 and 2
+sum(m6a.dist$rel_location >= 1 & m6a.dist$rel_location < 2)/nrow(m6a.dist)
+# count the number of variants with rel_location between 2 and 3
+sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location <= 3)/nrow(m6a.dist)
+# percentage of variants in the first 10% of the 3UTR
+sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location < 2.1)/nrow(m6a.dist)
 ```
 
 #### E-YTH
@@ -131,6 +140,14 @@ m6a.dist %>%
   xlim (-500,500) +
   theme_classic()
 
+# count the number of variants with rel_location between 0 and 1
+sum(m6a.dist$rel_location >= 0 & m6a.dist$rel_location < 1)/nrow(m6a.dist)
+# count the number of variants with rel_location between 1 and 2
+sum(m6a.dist$rel_location >= 1 & m6a.dist$rel_location < 2)/nrow(m6a.dist)
+# count the number of variants with rel_location between 2 and 3
+sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location <= 3)/nrow(m6a.dist)
+# percentage of variants in the first 10% of the 3UTR
+sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location < 2.1)/nrow(m6a.dist)
 ```
 
 ### Localization plots
