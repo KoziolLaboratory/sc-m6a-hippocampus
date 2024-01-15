@@ -116,6 +116,30 @@ sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location <= 3)/nrow(m6a.dist)
 sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location < 2.1)/nrow(m6a.dist)
 ```
 
+CDS plots separated by m/k value
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+m6a.dist <- m6a.dist %>%
+  mutate(id = paste(chr, coord, sep = "_"))
+yth_dif_v1 <- yth_diff_v1 %>%
+  mutate(id = paste(chr, end, sep = "_")) ->
+m6a.dist <- m6a.dist %>%
+  left_join(select(yth_diff_v1, id, `m/k`), by = "id") %>%
+  mutate(group = ifelse(`m/k` <= 0.25, "m/k<0.25", ifelse(`m/k` <= 0.5, "m/k=0.25-0.5", ifelse(`m/k` <= 0.75, "m/k=0.5-0.75", "m/k=0.75-1")))) %>%
+  mutate(group = as.factor(group))
+
+table(m6a.dist$group)
+
+m6a.dist %>%
+  ggplot(aes(x = utr3_st)) +
+  geom_histogram(binwidth = 10) +
+  xlim (-500,500) +
+  facet_grid(group~., scales = "free") +
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw()
+```
+
+
 #### E-YTH
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
@@ -148,6 +172,29 @@ sum(m6a.dist$rel_location >= 1 & m6a.dist$rel_location < 2)/nrow(m6a.dist)
 sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location <= 3)/nrow(m6a.dist)
 # percentage of variants in the first 10% of the 3UTR
 sum(m6a.dist$rel_location >= 2 & m6a.dist$rel_location < 2.1)/nrow(m6a.dist)
+```
+
+CDS plots separated by m/k value
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+m6a.dist <- m6a.dist %>%
+  mutate(id = paste(chr, coord, sep = "_"))
+yth_dif_v2 <- yth_diff_v2 %>%
+  mutate(id = paste(chr, end, sep = "_")) ->
+m6a.dist <- m6a.dist %>%
+  left_join(select(yth_diff_v2, id, `m/k`), by = "id") %>%
+  mutate(group = ifelse(`m/k` <= 0.25, "m/k<0.25", ifelse(`m/k` <= 0.5, "m/k=0.25-0.5", ifelse(`m/k` <= 0.75, "m/k=0.5-0.75", "m/k=0.75-1")))) %>%
+  mutate(group = as.factor(group))
+
+table(m6a.dist$group)
+
+m6a.dist %>%
+  ggplot(aes(x = utr3_st)) +
+  geom_histogram(binwidth = 10) +
+  xlim (-500,500) +
+  facet_grid(group~., scales = "free") +
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw()
 ```
 
 ### Localization plots

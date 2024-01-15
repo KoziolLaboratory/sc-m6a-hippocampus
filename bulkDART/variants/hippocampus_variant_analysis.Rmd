@@ -130,7 +130,22 @@ m6a.dist %>%
   geom_density(aes(y = ..count..), alpha=0.6, fill = "#8DA0CB", color = "#8DA0CB") +
   xlim (-500,500) +
   theme_classic()  
+```
 
+CDS plots separated by m/k value
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+m6a.dist <- m6a.dist %>%
+  mutate(id = paste(chr, coord, sep = "_"))
+yth_dif_v2 <- yth_diff_v2 %>%
+  mutate(id = paste(chr, end, sep = "_")) ->
+m6a.dist <- m6a.dist %>%
+  left_join(select(yth_diff_v2, id, `m/k`), by = "id") %>%
+  mutate(group = ifelse(`m/k` <= 0.25, "m/k<0.25", ifelse(`m/k` <= 0.5, "m/k=0.25-0.5", ifelse(`m/k` <= 0.75, "m/k=0.5-0.75", "m/k=0.75-1")))) %>%
+  mutate(group = as.factor(group))
+
+table(m6a.dist$group)
+  
 ```
 
 ## Localization plots
