@@ -107,7 +107,7 @@ m6a.dist %>%
   theme_classic()
 ```
 
-#### YTH-E
+#### E-YTH
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
 cds_file <- "/GPFS/Magda_lab_temp/maitenat/dartseq_replicates/aligned/metaplotR/HEK293T-V2_yth_filt-all.dist.measures.txt"
@@ -130,5 +130,72 @@ m6a.dist %>%
   geom_density(aes(y = ..count..), alpha=0.6, fill = "#8DA0CB", color = "#8DA0CB") +
   xlim (-500,500) +
   theme_classic()
+
+```
+
+### Localization plots
+
+#### YTH-E
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+blank_theme <- theme_minimal() +
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid=element_blank(),
+  axis.ticks = element_blank(),
+  plot.title=element_text(size=14, face="bold")
+  )
+
+yth_annot <- read.delim(file.path(dir, "HEK293T-V1_yth_filt-all_annot.bed"), header = TRUE, sep = "\t") %>%
+  as_tibble()
+
+yth_annot <- yth_annot %>%
+  mutate(annot = gsub("\\(.*", "", Annotation))
+
+yth_annot_table <- table(yth_annot$annot)
+yth_annot_table0 <- tibble(localization = names(yth_annot_table), variants = as.numeric(yth_annot_table))
+  
+ggplot(yth_annot_table0, aes(x = "", y = variants, fill = localization)) +
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x = element_blank())
+
+yth_annot_table0 %>%
+  mutate(variant_percentage = variants/sum(variants))
+```
+
+#### E-YTH
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+blank_theme <- theme_minimal() +
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid=element_blank(),
+  axis.ticks = element_blank(),
+  plot.title=element_text(size=14, face="bold")
+  )
+
+yth_annot <- read.delim(file.path(dir, "HEK293T-V2_yth_filt-all_default_annot.bed"), header = TRUE, sep = "\t") %>%
+  as_tibble()
+
+yth_annot <- yth_annot %>%
+  mutate(annot = gsub("\\(.*", "", Annotation))
+
+yth_annot_table <- table(yth_annot$annot)
+yth_annot_table0 <- tibble(localization = names(yth_annot_table), variants = as.numeric(yth_annot_table))
+  
+ggplot(yth_annot_table0, aes(x = "", y = variants, fill = localization)) +
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x = element_blank())
+
+yth_annot_table0 %>%
+  mutate(variant_percentage = variants/sum(variants))
 
 ```
