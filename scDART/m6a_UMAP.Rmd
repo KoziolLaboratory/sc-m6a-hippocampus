@@ -1,0 +1,131 @@
+---
+title: "m6a_UMAP"
+output:
+  html_document:
+    df_print: paged
+---
+
+In this document we integrate the RNA abundance and methylation data obtained from bullseye in single-cell DART data. 
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, eval = FALSE}
+library(tidyverse)
+
+# Mutant reads
+mut_filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.bed"
+yth_data <- read.table(mut_filename, header = FALSE, fill = TRUE)
+colnames(yth_data) <- c("chr", "start", "end", "gene", "loc", "change0", "m", "dart_ratio/control_ratio", "mk", "strand", "unk", "unk2", "mk2", "k", "change1", "cell_id", "unk3", "mk_overall", "mk_mut", "mk_ratio")
+variant_reads_per_gene_cell <- yth_data %>%
+  group_by(cell_id, gene) %>%
+  summarize(variant_reads = sum(m))
+
+
+# All reads 
+all_read_filename <- "/GPFS/Magda_lab_temp/maitenat/scs/6J-3M-2ws-V2-3-YTH_RSEC_ReadsPerCell.csv"
+all_read_mat <- read.csv(all_read_filename, skip = 6)
+all_read_df <- all_read_mat %>%
+  pivot_longer(cols = colnames(all_read_mat)[2:ncol(all_read_mat)],
+               names_to = "gene",
+               values_to = "total_reads")
+total_reads_per_gene_cell <- all_read_df %>%
+  group_by(Cell_Index, gene) %>%
+  summarize(tot_reads = sum(total_reads))
+
+total_reads_per_gene_cell <- total_reads_per_gene_cell %>%
+  rename(cell_id = Cell_Index)
+
+# Join
+all_reads <- variant_reads_per_gene_cell %>%
+  left_join(total_reads_per_gene_cell, by = c("cell_id", "gene"))
+
+```
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, eval = TRUE}
+variants_per_gene_cell <- yth_data %>%
+  group_by(cell_id, gene) %>%
+  summarize(n_variants = n())
+
+variants_per_gene_cell_df <- variants_per_gene_cell %>%
+  spread(cell_id, n_variants) %>%
+  as.data.frame()
+
+variants_per_gene_cell_df[is.na(variants_per_gene_cell_df)] <- 0
+rownames(variants_per_gene_cell_df) <- variants_per_gene_cell_df[, 1]
+variants_per_gene_cell_df <- variants_per_gene_cell_df[, -1]
+colnames(variants_per_gene_cell_df) <- colnames(variants_per_gene_cell_df)
+
+# Plot over UMAP plot
+
+library(Seurat)
+data <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/scDART_integrated_seurat.rds")
+
+# First we need to load ythmut data
+
+ythmut_filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/6J-3M-V2-3-mut_edit-sites_bc_filtered_all.bed"
+ythmut_data <- read.table(ythmut_filename, header = FALSE)
+colnames(ythmut_data) <- c("chr", "start", "end", "info", "perc", "strand", "unk2", "unk3", "unk4", "n", "change", "cell_id")
+ythmut_data <- ythmut_data %>%
+  separate(info, into = c("gene", "loc", "change", "n_variant", "dart_ratio/control_ratio"), sep = "\\|") %>%
+  mutate(n_variant = as.numeric(gsub("mut=", "", n_variant)))
+
+mut_variants_per_gene_cell <- ythmut_data %>%
+  group_by(cell_id, gene) %>%
+  summarize(n_variants = n())
+
+mut_variants_per_gene_cell_df <- mut_variants_per_gene_cell %>%
+  spread(cell_id, n_variants) %>%
+  as.data.frame()
+
+mut_variants_per_gene_cell_df[is.na(mut_variants_per_gene_cell_df)] <- 0
+rownames(mut_variants_per_gene_cell_df) <- mut_variants_per_gene_cell_df[, 1]
+mut_variants_per_gene_cell_df <- mut_variants_per_gene_cell_df[, -1]
+colnames(mut_variants_per_gene_cell_df) <- paste0(colnames(mut_variants_per_gene_cell_df), "_2")
+
+# Join the two matrices
+all_variant_df <- merge(variants_per_gene_cell_df, mut_variants_per_gene_cell_df, by = 0, all = TRUE)
+rownames(all_variant_df) <- all_variant_df$Row.names
+all_variant_df <- all_variant_df[, -1]
+all_variant_df[is.na(all_variant_df)] <- 0
+
+# create a new assay to store m6a count information
+# First we need to add the columns that are not in the data
+cols_add <- setdiff(colnames(data$RNA), colnames(all_variant_df))
+new_df <- matrix(0, nrow = nrow(all_variant_df), ncol = length(cols_add))
+colnames(new_df) <- cols_add
+m6a_df <- cbind(all_variant_df, new_df)
+# Then we need to remove the columns that are not in the data
+m6a_df <- m6a_df[, intersect(colnames(m6a_df), colnames(data$RNA))] 
+
+m6a_assay <- CreateAssayObject(counts = m6a_df)
+# add this assay to the previously created Seurat object
+DefaultAssay(data) <- "RNA"
+data[["m6a"]] <- m6a_assay
+
+saveRDS(data, "/GPFS/Magda_lab_temp/maitenat/scs/scDART_integrated_seurat_m6a.rds")
+
+```
+
+Visualize
+```{r echo = FALSE, message = FALSE, warning = FALSE, eval = TRUE}
+library(Nebulosa)
+DefaultAssay(data) <- "m6a"
+Idents(data) <- data$orig.ident
+subset_yth <- subset(data, idents = "6J_yth")
+
+plot_density(subset_yth, 'Colgalt1', joint = FALSE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(subset_yth, 'Gsn', joint = FALSE, combine = FALSE, reduction = 'umap', pal = "cividis")
+
+plot_density(subset_yth, 'App', joint = FALSE, combine = FALSE, reduction = 'umap', pal = "cividis")
+```
+
+Conserved m6a density plots:
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+plot_density(data, 'Smarcc2', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Apoe', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Aplp1', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Ctsb', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Itm2b', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Mecp2', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Syt11', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Lamp1', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+plot_density(data, 'Brd2', joint = TRUE, combine = FALSE, reduction = 'umap', pal = "cividis")
+```

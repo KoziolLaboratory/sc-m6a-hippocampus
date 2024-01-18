@@ -49,7 +49,7 @@ bulk_merip_df %>%
 
 ```
 
-Intersection of the genes captured by bulk dart-seq, single-cell dart-seq and MeRIP intersection. Note that for the MeRIP, 141 regions could not be annotated to a gene. 
+Intersection of the genes with m6a changes captured by bulk dart-seq, single-cell dart-seq and MeRIP intersection. Note that for the MeRIP, 141 regions could not be annotated to a gene. 
 
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE}

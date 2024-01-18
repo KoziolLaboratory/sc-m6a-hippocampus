@@ -3,13 +3,17 @@ title: "integr_scDART"
 output: html_document
 ---
 
+In this document we do the integration of the YTH and YTH-mut scDART data using the Seurat package. 
+We also determine the cell clusters and cell types present in the data and the markers for each cell type, aided by the tools scibet and scMCA.
+Finally we plot some RNA density figures shown in the article.
+
 ```{r, echo = FALSE, warning=FALSE, message = FALSE}
 library(Seurat)
 library(tidyverse)
 
 # Filenames
-yth_filename <- "6J-3M-2ws-V2-3-YTH_RSEC_MolsPerCell.csv"
-ythmut_filename <- "6J-3M-V2-3-mut_RSEC_MolsPerCell.csv"
+yth_filename <- "/GPFS/Magda_lab_temp/maitenat/scs/6J-3M-2ws-V2-3-YTH_RSEC_MolsPerCell.csv"
+ythmut_filename <- "/GPFS/Magda_lab_temp/maitenat/scs/6J-3M-V2-3-mut_RSEC_MolsPerCell.csv"
 
 # Initialize the Seurat object with the raw (non-normalized data)
 yth_mat <- read.csv(yth_filename, skip = 6, row.names = 1)
@@ -131,12 +135,6 @@ integrated_seurat <- FindClusters(integrated_seurat, verbose = F)
 DimPlot(integrated_seurat, label = T) + NoLegend()
 ```
 
-Number of cells in each cluster:
-
-```{r, echo = FALSE, warning=FALSE, message = FALSE}
-table(integrated_seurat@meta.data$seurat_clusters, integrated_seurat@meta.data$orig.ident)
-```
-
 
 ### Cell type markers based on differential expression
 
@@ -195,6 +193,8 @@ VlnPlot(integrated_seurat, features = "nFeature_RNA", pt.size = 0, split.by = "o
 ## Cluster final plot
 
 Here I plot the cluster plot with the names of the cell types that identify each cluster.
+This has been aided by the tools scibet and scMCA. The scripts for running these in this same folder, namely scibet_tm.R and scMCA.R, respectively.
+
 
 ### 5 groups:
 
@@ -228,7 +228,63 @@ DimPlot(integrated_seurat, group.by = "cluster", label = FALSE)
 DimPlot(integrated_seurat, group.by = "cluster", label = T , repel = T, label.size = 3) + NoLegend()
 ```
 
-Violin plots:
+Number of cells in each cluster:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+cell_table <- table(integrated_seurat@meta.data$seurat_clusters, integrated_seurat@meta.data$orig.ident)
+cell_table
+
+cell_table_melt <- reshape2::melt(cell_table)
+ggplot(cell_table_melt, aes(x = Var1, y = value, fill = Var2)) + 
+geom_bar(stat = "identity", position = "dodge") + 
+theme_bw() +
+labs(x = "Cluster", y = "Number of cells per cluster")
+```
+
+Number of cells in each cell type:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+cell_table <- table(integrated_seurat@meta.data$cluster, integrated_seurat@meta.data$orig.ident)
+cell_table
+
+cell_table_melt <- reshape2::melt(cell_table)
+ggplot(cell_table_melt, aes(x = Var1, y = value, fill = Var2)) + 
+geom_bar(stat = "identity", position = "dodge") + 
+theme_bw() +
+labs(x = "Cluster", y = "Number of cells per cell type")
+```
+
+
+Detected genes per cluster and cell type:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+nFeat_df <- data.frame(cluster = integrated_seurat@meta.data$seurat_clusters, 
+                       cell_type = integrated_seurat@meta.data$cluster,
+                       nFeatures = integrated_seurat@meta.data$nFeature_RNA)
+
+nFeat_max_df <- nFeat_df %>%
+  group_by(cell_type) %>%
+  summarize(max_nFeatures = max(nFeatures))
+
+nFeat_plot <- ggplot(nFeat_max_df, aes(x = cell_type, y = max_nFeatures)) +
+  geom_bar(stat = "identity", aes(fill = cell_type)) +
+  coord_flip() +
+  theme_classic() +
+  xlab("") +
+  ylab("") +
+  theme(legend.position="none")
+
+nFeat_plot
+
+cat("Number of (max) detected genes per cluster:")
+print(nFeat_max_df)
+
+nFeat_cluster_max_df <- nFeat_df %>%
+  group_by(cluster) %>%
+  summarize(max_nFeatures = max(nFeatures))
+
+```
+
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE}
 VlnPlot(integrated_seurat,
@@ -237,6 +293,33 @@ VlnPlot(integrated_seurat,
         pt.size = 0) & theme(axis.title.x = element_blank(),
                              axis.title.y = element_blank(),
                              title = element_text(size = 6))
+
+Nebulosa::plot_density(integrated_seurat, features = c("Sox10", "Snap25", "Esam", "Lcp1", "Gfap"), joint = FALSE, combine = FALSE)
+
+Nebulosa::plot_density(integrated_seurat, "Camk2a", joint = FALSE, combine = FALSE)
+```
+
+Conserved m6a RNA density plots:
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+Nebulosa::plot_density(integrated_seurat, "Smarcc2", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Apoe", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Aplp1", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Ctsb", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Itm2b", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Mecp2", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Syt11", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Lamp1", joint = FALSE, combine = FALSE)
+Nebulosa::plot_density(integrated_seurat, "Brd2", joint = FALSE, combine = FALSE)
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+Nebulosa::plot_density(integrated_seurat, "App", joint = FALSE, combine = FALSE)
+```
+
+m6a regulatory enzymes:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+Nebulosa::plot_density(integrated_seurat, features = c("Ythdf2", "Mettl3", "Mettl14", "Wtap", "Fto", "Alkbh5"), joint = FALSE, combine = FALSE)
 ```
 
 

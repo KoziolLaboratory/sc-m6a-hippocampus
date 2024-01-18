@@ -1,0 +1,99 @@
+---
+title: "Differential expression between yth and ythmut in scDART"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we carry out differential expression analysis for each cell type and cluster between yth and ythmut.
+
+We set an adjusted p-value threshold of 0.1, and we can later filter that even more.
+
+The resulting data frames have the following columns:
+
+p_val: p_val (unadjusted)
+avg_log2FC: log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
+pct.1: The percentage of cells where the feature is detected in the first group (yth)
+pct.2: The percentage of cells where the feature is detected in the second group (ythmut)
+p_val_adj: Adjusted p-value, based on Bonferroni correction using all features in the dataset.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(RColorBrewer)
+library(Seurat)
+seurat_data <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/scDART_integrated_seurat.rds")
+
+immune_cells <- as.character(c(0, 1, 4, 8, 9, 10, 14, 15, 17, 18, 19, 20, 21, 24, 25, 27))
+oligodendrocytes <- as.character(c(2, 3, 5, 6, 7, 12, 13, 16))
+neurons <- as.character(c(11, 23))
+endothelial <- "26"
+astrocytes <- "22"
+
+cluster_df <- tibble(cell_type = c(rep("immune_cells", length(immune_cells)), rep("oligodendrocytes", length(oligodendrocytes)), rep("neurons", length(neurons)), "endothelial", "astrocytes"),
+                     cluster_id = c(immune_cells, oligodendrocytes, neurons, endothelial, astrocytes))
+
+```
+
+#### Overall
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+alpha <- 0.1
+Idents(object = seurat_data) <- "orig.ident"
+yth_mut_de_markers <- FindMarkers(seurat_data, ident.1 = "6J_yth", ident.2 = "6J_ythmut")
+yth_mut_de_markers[yth_mut_de_markers$p_val_adj < alpha, ]
+write.table(yth_mut_de_markers[yth_mut_de_markers$p_val_adj < alpha, ], file = "yth_mut_de_markers.txt", sep = "\t", quote = FALSE, row.names = TRUE)
+```
+
+#### Cluster-wise
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Create a column corresponding to the interaction of the cluster ID and the cell origin
+seurat_data@meta.data$id.hs <- interaction(seurat_data@meta.data$integrated_snn_res.0.8, 
+                                      seurat_data@meta.data$orig.ident, sep = ".")
+
+# Switch the identity of the cells to 'id.hs'
+Idents(seurat_data) <- "id.hs"
+
+# Compute differential expression analysis
+tests <- data.frame(yth = paste(setdiff(0:27,23), "6J_yth", sep = "."),
+                    ythmut = paste(setdiff(0:27,23), "6J_ythmut", sep = "."))
+
+walk(1:nrow(tests), function(i) {
+  print(sprintf("The differential expression analysis in cluster %s gives the following result:", gsub(".6J_yth", "", tests[i, "yth"])))
+  yth_mut_de_markers <- FindMarkers(object = seurat_data, ident.1 = tests[i, 1], ident.2 = tests[i, 2])
+  print(yth_mut_de_markers[yth_mut_de_markers$p_val_adj < alpha, ])
+})
+
+```
+
+#### Cell type-wise
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Add a column to the seurat object indicating the cell type of each cell
+seurat_data@meta.data$cell_type <- pull(cluster_df[match(as.character(seurat_data@meta.data$seurat_clusters), cluster_df$cluster_id),
+          "cell_type"], "cell_type")
+
+# Create a column corresponding to the interaction of the cell type and the cell origin
+seurat_data@meta.data$cell.type.orig <- interaction(seurat_data@meta.data$cell_type, 
+                                      seurat_data@meta.data$orig.ident, sep = ".")
+
+# Switch the identity of the cells to cell.type.orig
+Idents(seurat_data) <- "cell.type.orig"
+
+# Compute differential expression analysis
+tests <- data.frame(yth = paste(unique(cluster_df$cell_type), "6J_yth", sep = "."),
+                    ythmut = paste(unique(cluster_df$cell_type), "6J_ythmut", sep = "."))
+
+walk(1:nrow(tests), function(i) {
+  print(sprintf("The differential expression analysis in cell type %s gives the following result:", gsub(".6J_yth", "", tests[i, "yth"])))
+  yth_mut_de_markers <- FindMarkers(object = seurat_data, ident.1 = tests[i, 1], ident.2 = tests[i, 2])
+  print(yth_mut_de_markers[yth_mut_de_markers$p_val_adj < alpha, ])
+})
+
+```
+
+
