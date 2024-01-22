@@ -297,7 +297,7 @@ for (i in celltypes) {
 1.683.664 C>T variants were found. After discarding molecules not successfuly assigned to a cell, SNPs, WT and APOBEC variants, we are left with 1.442.817 variants. If we consider the variants that happen only in the 16.243 cells that we have used to do the clustering analysis, we have 1.419.690 C>T variants with 16.154 UMIs/cells. 
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
-filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/2023/6J-3M-V2-3-mut_edit-sites_bc_filtered_all.bed"
+filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/6J-3M-V2-3-mut_edit-sites_bc_filtered_all.bed"
 ythmut_data <- read.table(filename, header = FALSE)
 colnames(ythmut_data) <- c("chr", "start", "end", "info", "mk", "strand", "unk", "unk2", "mk2", "k", "change", "cell_id")
 

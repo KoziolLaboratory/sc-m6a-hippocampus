@@ -14,14 +14,14 @@ Let's start with some preliminary tests. The distribution of the coverage at the
 ```{r echo = FALSE, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(Seurat)
-seurat_data <- readRDS("/GPFS/Magda_lab_permanent/maitenat/scs_yth/code/scRNA_dimplot/scDART_integrated_seurat.rds")
+seurat_data <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/scDART_integrated_seurat.rds")
 cell_to_cluster <- seurat_data@active.ident
 cell_to_sample <- seurat_data@meta.data$orig.ident
 cluster_labels <- data.frame(cell = names(cell_to_cluster), 
                               cluster = cell_to_cluster,
                              sample = cell_to_sample)
 
-filename <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-2ws-V2-3-YTH/bullseye/2023/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.bed"
+filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.bed"
 yth_data <- read.table(filename, header = FALSE, fill = TRUE)
 colnames(yth_data) <- c("chr", "start", "end", "gene", "loc", "change0", "n_yth", "dart_ratio/control_ratio", "perc", "strand", "control_freq", "control_cov", "dart_freq", "dart_cov", "change", "cell_id", "cluster", "mk_overall", "mk_mut", "mk_ratio")
 
@@ -131,4 +131,36 @@ write.table(genes_with_other_mk09, file = file.path(outdir, paste0(celltype, "_g
 for (celltype in unique(cluster_df$cell_type)) {
   test_mk1_mk09_genes(celltype)
 }
+```
+
+More general: genes with at least one m/k = 1 per cell type
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+cell_to_cluster_filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/cell_to_cluster.txt"
+
+cluster_df <- tibble(cell_type = c(rep("IMC", length(immune_cells)), rep("OLG", length(oligodendrocytes)), rep("NEUR", length(neurons)), "EC", "ASC"),
+                     cluster_id = c(immune_cells, oligodendrocytes, neurons, endothelial, astrocytes))
+
+cell_to_cluster <- read.table(cell_to_cluster_filename, header = TRUE)
+yth_data$cluster <- cell_to_cluster$cluster[match(yth_data$cell_id, cell_to_cluster$cell)]
+# rm NAs
+# los NAs son porque 804 celulas no están asignadas a ningún cluster
+yth_data <- yth_data[!is.na(yth_data$cluster),]
+
+cell_type_idx <- match(yth_data$cluster, cluster_df$cluster_id)
+yth_data$cell_type <- cluster_df$cell_type[cell_type_idx]
+
+cell_types <- unique(cluster_df$cell_type)
+
+genes_per_ctype <- map(cell_types, function(x) {
+  yth_data %>%
+    filter(mk == 1, cell_type == x) %>%
+    pull(gene) %>%
+    unique()
+})
+
+names(genes_per_ctype) <- cell_types
+
+saveRDS(genes_per_ctype, file = "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/genes_per_ctype.rds")
+```
 ```

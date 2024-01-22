@@ -1,5 +1,5 @@
 ---
-title: "m6a_UMAP"
+title: "m6a UMAP plots"
 output:
   html_document:
     df_print: paged
