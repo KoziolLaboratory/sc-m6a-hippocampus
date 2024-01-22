@@ -32,14 +32,14 @@ The following plots, and everything that says YTH in this document, correspond t
 library(tidyverse)
 library(RColorBrewer)
 library(Seurat)
-seurat_data <- readRDS("/GPFS/Magda_lab_permanent/maitenat/scs_yth/code/scRNA_dimplot/scDART_integrated_seurat.rds")
+seurat_data <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/scDART_integrated_seurat.rds")
 cell_to_cluster <- seurat_data@active.ident
 cell_to_sample <- seurat_data@meta.data$orig.ident
 cluster_labels <- data.frame(cell = names(cell_to_cluster), 
                               cluster = cell_to_cluster,
                              sample = cell_to_sample)
 
-filename <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-2ws-V2-3-YTH/bullseye/2023/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.bed"
+filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.bed"
 yth_data <- read.table(filename, header = FALSE, fill = TRUE)
 colnames(yth_data) <- c("chr", "start", "end", "gene", "loc", "change0", "m", "dart_ratio/control_ratio", "mk", "strand", "unk", "unk2", "mk2", "k", "change1", "cell_id", "unk3", "mk_overall", "mk_mut", "mk_ratio")
 
@@ -185,7 +185,7 @@ yth_annot_table0 %>%
 #### CDS plots - distribution within 500 nucleotides of the stop codon
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
-cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-2ws-V2-3-YTH/bullseye/2023/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.dist.measures.txt"
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.dist.measures.txt"
 m6a.dist <- read.delim(cds_file, header = T)
 
 m6a.dist <- m6a.dist %>%
@@ -217,7 +217,7 @@ m6a.dist %>%
 If we compare these distributions with those deaminations in the YTH-mut condition:
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
-cds_file <- "~/scratch60/scs_yth/6J-3M-V2-3-mut/metaplotR/6J-3M-V2-3-mut_edit-sites_bc_filtered_no_apobec_wt.dist.measures.txt"
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-V2-3-mut_edit-sites_bc_filtered_no_apobec_wt.dist.measures.txt"
 ythmut.dist <- read.delim(cds_file, header = T)
 ythmut.dist <- ythmut.dist %>%
   mutate(trx_len = utr5_size + cds_size + utr3_size)
@@ -297,7 +297,7 @@ for (i in celltypes) {
 1.683.664 C>T variants were found. After discarding molecules not successfuly assigned to a cell, SNPs, WT and APOBEC variants, we are left with 1.442.817 variants. If we consider the variants that happen only in the 16.243 cells that we have used to do the clustering analysis, we have 1.419.690 C>T variants with 16.154 UMIs/cells. 
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
-filename <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-V2-3-mut/bullseye/2023/6J-3M-V2-3-mut_edit-sites_bc_filtered_all.bed"
+filename <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/2023/6J-3M-V2-3-mut_edit-sites_bc_filtered_all.bed"
 ythmut_data <- read.table(filename, header = FALSE)
 colnames(ythmut_data) <- c("chr", "start", "end", "info", "mk", "strand", "unk", "unk2", "mk2", "k", "change", "cell_id")
 
@@ -586,14 +586,14 @@ genes_highedit_ythmut <- ythmut_data_cluster_labeled %>%
   select(gene, cell_type, cluster) %>%
   unique()
 
-write.table(genes_highedit_ythmut, "/home/Magda_lab/maitenat/DATA/scs_yth/code/genes_highedit_ythmut.txt", row.names = FALSE)
+write.table(genes_highedit_ythmut, "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/genes_highedit_ythmut.txt", row.names = FALSE)
 
 genes_highedit_yth <- yth_data_cluster_labeled %>%
   filter(mk >= 0.75) %>%
   select(gene, cell_type, cluster) %>%
   unique()
 
-write.table(genes_highedit_yth, "/home/Magda_lab/maitenat/DATA/scs_yth/code/genes_highedit_yth.txt", row.names = FALSE)
+write.table(genes_highedit_yth, "/GPFS/Magda_lab_temp/maitenat/scs/bullseye/genes_highedit_yth.txt", row.names = FALSE)
   
 ```
 
