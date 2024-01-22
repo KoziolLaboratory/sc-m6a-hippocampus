@@ -1,0 +1,599 @@
+---
+title: "Analysis of C>T variants in scs data"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we provide an analysis of the C>T variants found in the SCS dart-seq data. The criteria for finding a C>T variant has been the following:
+
+- Minimum read coverage: 10
+- Minimum edit sites: 2
+- Minimum edit percentage: 5%
+- Maximum edit percentage: 100%
+- WT and APOBEC variants (according to bulk-seq) have been discarded
+
+For the yth vs yth-mut differential analysis
+
+- Minimum enrichment of editing over control: 1.5 fold over the summarized m/k in all the cells with the edit in that cluster in the YTHmut sample
+
+### YTH
+
+3.027.244 C>T variants were found. After discarding molecules not successfuly assigned to a cell, SNPs, WT and APOBEC variants, we are left with 2.701.235 variants. If we consider the variants that happen only in the 11.561 cells that we have used to do the clustering analysis, we have 2.566.141 C>T variants with 11.555 UMIs/cells. 
+After the differential analysis over YTHmut, 931.982 variants are left.
+
+The following plots, and everything that says YTH in this document, correspond to this final set of 931.982 variants.
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+library(tidyverse)
+library(RColorBrewer)
+library(Seurat)
+seurat_data <- readRDS("/GPFS/Magda_lab_permanent/maitenat/scs_yth/code/scRNA_dimplot/scDART_integrated_seurat.rds")
+cell_to_cluster <- seurat_data@active.ident
+cell_to_sample <- seurat_data@meta.data$orig.ident
+cluster_labels <- data.frame(cell = names(cell_to_cluster), 
+                              cluster = cell_to_cluster,
+                             sample = cell_to_sample)
+
+filename <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-2ws-V2-3-YTH/bullseye/2023/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.bed"
+yth_data <- read.table(filename, header = FALSE, fill = TRUE)
+colnames(yth_data) <- c("chr", "start", "end", "gene", "loc", "change0", "m", "dart_ratio/control_ratio", "mk", "strand", "unk", "unk2", "mk2", "k", "change1", "cell_id", "unk3", "mk_overall", "mk_mut", "mk_ratio")
+
+vars_per_cell <- yth_data %>%
+  group_by(cell_id) %>%
+  summarize(count = n())
+
+vars_per_cell <- vars_per_cell %>%
+  mutate(cell_id_yth = cell_id)
+
+# We can make another table including those cells that do not have any change
+cells_no_variant0 <- setdiff(cluster_labels$cell, vars_per_cell$cell_id_yth)
+cells_no_variant <- grep("_1$", cells_no_variant0)
+# All cells have at least 1 variant
+print(sprintf("There are %s cells with no C>T variants", length(cells_no_variant)))
+print(sprintf("The minimum number of changes per cell is %s and the maximum %s", min(vars_per_cell$count), max(vars_per_cell$count)))
+print("The summary of the number of C>T changes per cell is:")
+summary(vars_per_cell$count)
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cluster <- cluster_labels %>%
+  filter(sample == "6J_yth") %>%
+  left_join(vars_per_cell, by = c("cell" = "cell_id_yth"))
+
+immune_cells <- as.character(c(0, 1, 4, 8, 9, 10, 14, 15, 17, 18, 19, 20, 21, 24, 25, 27))
+oligodendrocytes <- as.character(c(2, 3, 5, 6, 7, 12, 13, 16))
+neurons <- as.character(c(11, 23))
+endothelial <- "26"
+astrocytes <- "22"
+
+cluster_df <- tibble(cell_type = c(rep("IMC", length(immune_cells)), rep("OLG", length(oligodendrocytes)), rep("NEUR", length(neurons)), "EC", "ASC"),
+                     cluster_id = c(immune_cells, oligodendrocytes, neurons, endothelial, astrocytes))
+
+vars_per_cluster <- vars_per_cluster %>%
+  left_join(cluster_df, by = c("cluster" = "cluster_id"))
+```
+
+Distribution of changes per cluster and per cell type:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cluster %>%
+  ggplot(aes(x = reorder(cluster, as.numeric(as.character(cluster))), y = count, colour = reorder(cluster, as.numeric(as.character(cluster))))) +
+  geom_boxplot() +
+  theme_bw() +
+  ylab("C>T variant count per cluster") +
+  xlab("cluster") +
+  theme(legend.position = "none")
+
+vars_per_cluster %>%
+  ggplot(aes(x = reorder(cluster, as.numeric(as.character(cluster))), y = count, colour = reorder(cluster, as.numeric(as.character(cluster))))) +
+  geom_boxplot() +
+  theme_bw() +
+  ylab("C>T variant count per cluster") +
+  xlab("cluster") +
+  ylim(limits = c(0, 1000)) +
+  theme(legend.position = "none")
+
+vars_per_cluster %>%
+  mutate(cell_type = factor(cell_type, levels = c("OLG", "IMC", "NEUR", "ASC", "EC"))) %>%
+  ggplot(aes(x = cell_type, y = count, colour =  cell_type)) +
+  geom_boxplot() +
+  theme_bw() +
+  xlab("") +
+  ylab("C>T variant count per cell type") +
+  theme(legend.position = "none")
+
+vars_per_cluster %>%
+  mutate(cell_type = factor(cell_type, levels = c("OLG", "IMC", "NEUR", "ASC", "EC"))) %>%
+  ggplot(aes(x = cell_type, y = count, colour =  cell_type)) +
+  geom_boxplot() +
+  theme_bw() +
+  xlab("") +
+  ylim(limits = c(0, 1000)) +
+  ylab("C>T variant count per cell type") +
+  theme(legend.position = "none")
+
+```
+
+
+For the cell types, we can also see how the average number distributes among the clusters that belong to that cell type:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cell_cluster_summary <- vars_per_cluster %>%
+  group_by(cell_type, cluster) %>%
+  summarize(number_cells = n(),
+    total_variants = sum(count),
+    avg_variants = total_variants/number_cells)
+  
+vars_per_cell_cluster_summary %>%
+  mutate(cell_type = factor(cell_type, levels = c("OLG", "IMC", "NEUR", "ASC", "EC"))) %>%
+  ggplot(aes(x = cell_type, y = avg_variants, colour = cell_type)) +
+  geom_boxplot() +
+  theme_bw() +
+  ylab("Distribution of average variants per cell type") +
+  theme(legend.position = "none")
+
+vars_per_cluster %>%
+  group_by(cell_type) %>%
+  summarize(total_variants = sum(count)) %>%
+  mutate(cell_type = factor(cell_type, levels = c("OLG", "IMC", "NEUR", "ASC", "EC"))) %>%
+  ggplot(aes(x = cell_type, y = total_variants, fill = cell_type)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  ylab("Total variants per cell type") +
+  theme(legend.position = "none")
+
+```
+
+
+
+#### Genomic localization of the variants
+
+Here variants are treated separatedly, i.e., if a position is methylated in n cells, it's localization is counted n times.
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+library(scales)
+
+blank_theme <- theme_minimal()+
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid=element_blank(),
+  axis.ticks = element_blank(),
+  plot.title=element_text(size=14, face="bold")
+  )
+
+yth_annot_table <- table(yth_data$loc)
+yth_annot_table0 <- tibble(localization = names(yth_annot_table), variants = as.numeric(yth_annot_table))
+
+ggplot(yth_annot_table0, aes(x = "", y = variants, fill = localization)) +
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x = element_blank())
+
+yth_annot_table0 %>%
+  mutate(variant_percentage = variants/sum(variants))
+
+```
+
+#### CDS plots - distribution within 500 nucleotides of the stop codon
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-2ws-V2-3-YTH/bullseye/2023/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.dist.measures.txt"
+m6a.dist <- read.delim(cds_file, header = T)
+
+m6a.dist <- m6a.dist %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist <- m6a.dist %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+m6a.dist %>%
+  ggplot(aes(x = utr3_st)) +
+  geom_histogram(bins = 20) +
+  xlim (-500,500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw()
+```
+
+With greater resolution:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+m6a.dist %>%
+  ggplot(aes(x = utr3_st)) +
+  geom_histogram(bins = 40) +
+  xlim (-500,500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw()
+```
+
+
+If we compare these distributions with those deaminations in the YTH-mut condition:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+cds_file <- "~/scratch60/scs_yth/6J-3M-V2-3-mut/metaplotR/6J-3M-V2-3-mut_edit-sites_bc_filtered_no_apobec_wt.dist.measures.txt"
+ythmut.dist <- read.delim(cds_file, header = T)
+ythmut.dist <- ythmut.dist %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+ythmut.dist <- ythmut.dist %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+ythmut.dist <- ythmut.dist %>%
+  mutate(cell_id = paste0(cell_id, "_2"))
+all.dist <- bind_rows(yth = m6a.dist, ythmut = ythmut.dist, .id = "id")
+
+all.dist %>%
+  ggplot(aes(x = utr3_st, fill = id)) +
+  geom_histogram(alpha = 0.6, position = 'identity') +
+  xlim (-500,500) +
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  scale_fill_brewer(palette="Set2") +
+  theme_bw()
+```
+
+##### CDS plots by cluster
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+all.dist <- all.dist %>%
+  left_join(cluster_labels, by = c("cell_id" = "cell"))
+
+plot_cds_cluster <- function(df, cluster_id) {
+  all.dist %>%
+    filter(cluster == cluster_id) %>%
+    ggplot(aes(x = utr3_st, fill = id, color = id)) +
+    geom_histogram(alpha=0.6, position = 'identity') +
+    xlim (-500,500) +
+    geom_vline(xintercept = 1:2, col = "grey") + 
+    scale_fill_brewer(palette="Set2") +
+    scale_colour_brewer(palette="Set2") +
+    theme_bw() +
+    ggtitle(sprintf("Cluster %s", cluster_id))
+}
+
+n_clusters <- length(unique(cluster_labels$cluster))
+for (i in 0:(n_clusters-1)) {
+  print(plot_cds_cluster(all.dist, i))
+}
+
+```
+
+
+##### CDS plots by cell type
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+all.dist %>%
+   left_join(cluster_df, by = c("cluster" = "cluster_id")) -> all.dist
+
+plot_cds_celltype <- function(df, celltype) {
+  all.dist %>%
+    filter(cell_type == celltype) %>%
+    ggplot(aes(x = utr3_st, fill = id, color = id)) +
+    geom_histogram(alpha=0.6, position = 'identity') +
+    xlim (-500,500) +
+    geom_vline(xintercept = 1:2, col = "grey") + 
+    scale_fill_brewer(palette="Set2") +
+    scale_colour_brewer(palette="Set2") +
+    theme_bw() +
+    ggtitle(sprintf("%s", celltype))
+}
+
+celltypes <- unique(cluster_df$cell_type)
+for (i in celltypes) {
+  print(plot_cds_celltype(all.dist, i))
+}
+
+```
+
+
+### YTH-mut
+
+1.683.664 C>T variants were found. After discarding molecules not successfuly assigned to a cell, SNPs, WT and APOBEC variants, we are left with 1.442.817 variants. If we consider the variants that happen only in the 16.243 cells that we have used to do the clustering analysis, we have 1.419.690 C>T variants with 16.154 UMIs/cells. 
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+filename <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-V2-3-mut/bullseye/2023/6J-3M-V2-3-mut_edit-sites_bc_filtered_all.bed"
+ythmut_data <- read.table(filename, header = FALSE)
+colnames(ythmut_data) <- c("chr", "start", "end", "info", "mk", "strand", "unk", "unk2", "mk2", "k", "change", "cell_id")
+
+vars_per_cell <- ythmut_data %>%
+  group_by(cell_id) %>%
+  summarize(count = n())
+
+vars_per_cell <- vars_per_cell %>%
+  mutate(cell_id_ythmut = paste0(cell_id, "_2"))
+
+# We can make another table including those cells that do not have any change
+cells_no_variant0 <- setdiff(cluster_labels$cell, vars_per_cell$cell_id_ythmut)
+cells_no_variant <- cells_no_variant0[grep("_2$", cells_no_variant0)]
+
+print(sprintf("There are %s cells with no C>T variants", length(cells_no_variant)))
+cells_no_variant_df <- tibble(cell_id = as.numeric(gsub("_2", "", cells_no_variant)), 
+                              count = 0, 
+                              cell_id_ythmut = cells_no_variant)
+vars_per_cell <- bind_rows(vars_per_cell, cells_no_variant_df)
+
+print(sprintf("The minimum number of changes per cell is %s and the maximum %s", min(vars_per_cell$count), max(vars_per_cell$count)))
+print("The summary of the number of C>T changes per cell is:")
+summary(vars_per_cell$count)
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cluster <- cluster_labels %>%
+  filter(sample == "6J_ythmut") %>%
+  left_join(vars_per_cell, by = c("cell" = "cell_id_ythmut"))
+
+vars_per_cluster <- vars_per_cluster %>%
+  left_join(cluster_df, by = c("cluster" = "cluster_id"))
+```
+
+Distribution of changes per cluster and per cell type:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cluster %>%
+   ggplot(aes(x = reorder(cluster, as.numeric(as.character(cluster))), y = count, colour = reorder(cluster, as.numeric(as.character(cluster))))) +
+  geom_boxplot() +
+  theme_bw() +
+  xlab("cluster") +
+  ylab("C>T variant count per cluster") +
+  theme(legend.position = "none")
+
+vars_per_cluster %>%
+  mutate(cell_type = factor(cell_type, levels = c("OLG", "IMC", "NEUR", "ASC", "EC"))) %>%
+  ggplot(aes(x = cell_type, y = count, colour =  cell_type)) +
+  geom_boxplot() +
+  theme_bw() +
+  xlab("") +
+  ylab("C>T variant count per cell type") +
+  theme(legend.position = "none")
+```
+
+If we calculate the average count per cluster:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cluster_summary <- vars_per_cluster %>%
+  group_by(cluster, cell_type) %>%
+  summarize(number_cells = n(),
+    total_variants = sum(count),
+    avg_variants = total_variants/number_cells)
+
+vars_per_cluster_summary
+
+vars_per_cluster_summary %>%
+  ggplot(aes(x = reorder(cluster, as.numeric(as.character(cluster))), y = avg_variants, fill = reorder(cluster, as.numeric(as.character(cluster))))) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  xlab("cluster") +
+  ylab("Average variants per cluster") +
+  theme(legend.position = "none")
+```
+
+And per cell type:
+  
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cell_summary <- vars_per_cluster %>%
+  group_by(cell_type) %>%
+  summarize(number_cells = n(),
+            total_variants = sum(count),
+            avg_variants = total_variants/number_cells)
+
+vars_per_cell_summary
+
+vars_per_cell_summary %>%
+  mutate(cell_type = factor(cell_type, levels = c("OLG", "IMC", "NEUR", "ASC", "EC"))) %>%
+  ggplot(aes(x = cell_type, y = avg_variants, fill =  cell_type)) +
+  geom_bar(stat = "identity") +
+  theme_bw() +
+  xlab("") +
+  ylab("Average variants per cell type") +
+  theme(legend.position = "none")
+```
+
+For the cell types, we can also see how the average number distributes among the clusters that belong to that cell type:
+  
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+vars_per_cell_cluster_summary <- vars_per_cluster %>%
+  group_by(cell_type, cluster) %>%
+  summarize(number_cells = n(),
+            total_variants = sum(count),
+            avg_variants = total_variants/number_cells)
+
+vars_per_cell_cluster_summary %>%
+  mutate(cell_type = factor(cell_type, levels = c("OLG", "IMC", "NEUR", "ASC", "EC"))) %>%
+  ggplot(aes(x = cell_type, y = avg_variants, colour = cell_type)) +
+  geom_boxplot() +
+  theme_bw() +
+  xlab("") +
+  ylab("Distribution of average variants per cell type") +
+  theme(legend.position = "none")
+```
+
+
+#### Genomic localization of the variants:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+ythmut_data <- ythmut_data %>%
+  separate(info, into = c("gene", "loc", "change", "n_ythmut", "vaf_ratio"), sep = "\\|") 
+
+ythmut_annot_table <- table(ythmut_data$loc)
+ythmut_annot_table0 <- tibble(localization = names(ythmut_annot_table), variants = as.numeric(ythmut_annot_table))
+
+ggplot(ythmut_annot_table0, aes(x = "", y = variants, fill = localization)) +
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x = element_blank())
+
+ythmut_annot_table0 %>%
+  mutate(variant_percentage = variants/sum(variants))
+
+```
+
+### m/k plots
+
+#### YTH
+
+General plot
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+my_palette <- brewer.pal(5, "Set2")
+
+yth_data_cluster_labeled <- yth_data %>%
+  left_join(filter(cluster_labels, sample == "6J_yth"), by = c("cell_id" = "cell"))
+
+yth_data_cluster_labeled <- yth_data_cluster_labeled[!is.na(yth_data_cluster_labeled[, "cluster"]), ]
+
+yth_data_cluster_labeled <- yth_data_cluster_labeled %>%
+  left_join(cluster_df, by = c("cluster" = "cluster_id"))
+
+yth_data_cluster_labeled %>%
+  ggplot(aes(mk)) +
+  geom_histogram(position = "identity", binwidth = 0.01) +
+  theme_classic() +
+  theme(legend.title=element_blank())
+
+```
+
+By cell type:
+  
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+plot_freq_hist <- function(cell) {
+  yth_data_cluster_labeled %>%
+    filter(cell_type == cell) %>%
+    ggplot(aes(mk)) +
+    geom_histogram(position = "identity", binwidth = 0.01)  +
+    theme_classic() +
+    theme(legend.title=element_blank()) +
+    ggtitle(sprintf("Cell type %s", cell))
+}
+
+plot_freq_hist_log <- function(cell) {
+  yth_data_cluster_labeled %>%
+    filter(cell_type == cell) %>%
+    ggplot(aes(mk)) +
+    geom_histogram(position = "identity", binwidth = 0.01)  +
+    scale_y_log10(oob = scales::squish_infinite) +
+    theme_classic() +
+    theme(legend.title=element_blank()) +
+    ggtitle(sprintf("Cell type %s", cell))
+}
+
+cell_types <- unique(cluster_df$cell_type)
+for (x in cell_types) {
+  print(plot_freq_hist(x))
+  print(plot_freq_hist_log(x))
+}
+
+
+```
+
+Per cluster plots:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+plot_freq_hist <- function(cluster_id) {
+  yth_data_cluster_labeled %>%
+    filter(cluster == cluster_id) %>%
+    ggplot(aes(mk)) +
+    geom_histogram(position = "identity", binwidth = 0.01)  +
+    theme_classic() +
+    theme(legend.title=element_blank()) +
+    ggtitle(sprintf("Cluster %s", cluster_id))
+}
+
+plot_freq_hist_log <- function(cluster_id) {
+  yth_data_cluster_labeled %>%
+    filter(cluster == cluster_id) %>%
+    ggplot(aes(mk)) +
+    geom_histogram(position = "identity", binwidth = 0.01)  +
+    scale_y_log10(oob = scales::squish_infinite) +
+    theme_classic() +
+    theme(legend.title=element_blank()) +
+    ggtitle(sprintf("Cluster %s", cluster_id))
+}
+
+cluster_ids <- as.character(setdiff(0:27, 23))
+for (x in cluster_ids) {
+  print(plot_freq_hist(x))
+  print(plot_freq_hist_log(x))
+}
+```
+
+
+#### YTH-MUT
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+my_palette <- brewer.pal(5, "Set2")
+
+ythmut_data <- ythmut_data %>%
+  mutate(cell_id = paste0(cell_id, "_2"))
+
+ythmut_data_cluster_labeled <- ythmut_data %>%
+  left_join(filter(cluster_labels, sample == "6J_ythmut"), by = c("cell_id" = "cell"))
+
+ythmut_data_cluster_labeled <- ythmut_data_cluster_labeled[!is.na(ythmut_data_cluster_labeled[, "cluster"]), ]
+
+ythmut_data_cluster_labeled <- ythmut_data_cluster_labeled %>%
+  left_join(cluster_df, by = c("cluster" = "cluster_id"))
+
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+plot_freq_hist <- function(cell) {
+  ythmut_data_cluster_labeled %>%
+    filter(cell_type == cell) %>%
+    ggplot(aes(mk)) +
+    geom_histogram(position = "identity", binwidth = 0.01)  +
+    theme_classic() +
+    theme(legend.title=element_blank()) +
+    ggtitle(sprintf("Cell type %s", cell))
+}
+for (x in cell_types) {
+  print(plot_freq_hist(x))
+}
+
+```
+
+
+Per cluster plots:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+plot_freq_hist <- function(cluster_id) {
+  ythmut_data_cluster_labeled %>%
+    filter(cluster == cluster_id) %>%
+    ggplot(aes(mk)) +
+    geom_histogram(position = "identity", binwidth = 0.01)  +
+    theme_classic() +
+    theme(legend.title=element_blank()) +
+    ggtitle(sprintf("Cluster %s", cluster_id))
+}
+
+cluster_ids <- as.character(0:27)
+for (x in cluster_ids) {
+  print(plot_freq_hist(x))
+}
+
+```
+
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf'), eval = FALSE}
+genes_highedit_ythmut <- ythmut_data_cluster_labeled %>%
+  filter(mk >= 0.75) %>%
+  select(gene, cell_type, cluster) %>%
+  unique()
+
+write.table(genes_highedit_ythmut, "/home/Magda_lab/maitenat/DATA/scs_yth/code/genes_highedit_ythmut.txt", row.names = FALSE)
+
+genes_highedit_yth <- yth_data_cluster_labeled %>%
+  filter(mk >= 0.75) %>%
+  select(gene, cell_type, cluster) %>%
+  unique()
+
+write.table(genes_highedit_yth, "/home/Magda_lab/maitenat/DATA/scs_yth/code/genes_highedit_yth.txt", row.names = FALSE)
+  
+```
+
