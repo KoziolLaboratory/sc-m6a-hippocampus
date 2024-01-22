@@ -1,0 +1,134 @@
+---
+title: "get_homogeneous_m6a"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we obtain the m6a variants with m/k = 1 in a cell that occur in at least 5 cells of other cell types with an m/k ratio < 0.9.
+
+Let's start with some preliminary tests. The distribution of the coverage at the sites with m/k = 1 is:
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(Seurat)
+seurat_data <- readRDS("/GPFS/Magda_lab_permanent/maitenat/scs_yth/code/scRNA_dimplot/scDART_integrated_seurat.rds")
+cell_to_cluster <- seurat_data@active.ident
+cell_to_sample <- seurat_data@meta.data$orig.ident
+cluster_labels <- data.frame(cell = names(cell_to_cluster), 
+                              cluster = cell_to_cluster,
+                             sample = cell_to_sample)
+
+filename <- "/GPFS/Magda_lab_temp/maitenat/scs_yth/6J-3M-2ws-V2-3-YTH/bullseye/2023/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all.bed"
+yth_data <- read.table(filename, header = FALSE, fill = TRUE)
+colnames(yth_data) <- c("chr", "start", "end", "gene", "loc", "change0", "n_yth", "dart_ratio/control_ratio", "perc", "strand", "control_freq", "control_cov", "dart_freq", "dart_cov", "change", "cell_id", "cluster", "mk_overall", "mk_mut", "mk_ratio")
+
+immune_cells <- as.character(c(0, 1, 4, 8, 9, 10, 14, 15, 17, 18, 19, 20, 21, 24, 25, 27))
+oligodendrocytes <- as.character(c(2, 3, 5, 6, 7, 12, 13, 16))
+neurons <- as.character(c(11, 23))
+endothelial <- "26"
+astrocytes <- "22"
+
+cluster_df <- tibble(cell_type = c(rep("immune_cells", length(immune_cells)), rep("oligodendrocytes", length(oligodendrocytes)), rep("neurons", length(neurons)), "endothelial", "astrocytes"),
+                     cluster_id = c(immune_cells, oligodendrocytes, neurons, endothelial, astrocytes))
+
+yth_data_cluster_labeled <- yth_data[!is.na(yth_data[, "cluster"]), ]
+yth_data_cluster_labeled$cluster <- as.character(yth_data_cluster_labeled$cluster)
+
+yth_data_cluster_labeled <- yth_data_cluster_labeled %>%
+  left_join(cluster_df, by = c("cluster" = "cluster_id"))
+
+summary(pull(filter(yth_data_cluster_labeled, dart_freq == 1), dart_cov))
+```
+
+For each cell type, we obtain a table with each position with m/k = 1 in at least 1 cell that is also found in at least 5 cells of another cell type with m/k<0.9.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+test_mk1_mk09_5cells <- function(celltype) {
+  cell_thr <- 5
+  
+  sites <- yth_data_cluster_labeled %>%
+    filter(cell_type == celltype,
+           dart_freq == 1) %>%
+    select(chr, start, end, gene) %>%
+    distinct()
+  
+  common_sites_5cells <- yth_data_cluster_labeled %>%
+    filter(cell_type != celltype) %>%
+    semi_join(sites, by = c("chr", "start", "end")) %>%
+    group_by(chr, start, end, gene) %>%
+    summarise(n_cells = n_distinct(cell_id)) %>%
+    filter(n_cells >= cell_thr)
+
+  other_celltypes <- yth_data_cluster_labeled %>%
+  filter(cell_type != celltype) %>%
+  filter(dart_freq < 0.9)
+
+
+# for sites common to sites and other_celltypes, check if there are at least 5 cells with m/k < 0.9 per cell type
+sites_with_other_mk09_5cells <- sites %>%
+  inner_join(other_celltypes, by = c("chr", "start", "end", "gene")) %>%
+  group_by(chr, start, end, gene) %>%
+  summarise(n_cells = n_distinct(cell_id)) %>%
+  filter(n_cells >= cell_thr)
+
+  print(sprintf("Number of (unique) sites with m/k = 1 in %s: %s", celltype, nrow(sites)))
+  print(sprintf("Of those sites, %s are also found in at least 5 cells of another cell type", nrow(common_sites_5cells)))
+  print(sprintf("Of those %s sites, %s are found with m/k < 0.9 in at least 5 cells of another cell type", nrow(common_sites_5cells), nrow(sites_with_other_mk09_5cells)))
+  print(sprintf("This means that %s sites have m/k > 0.9 in at least 5 cells of another cell type", nrow(common_sites_5cells) - nrow(sites_with_other_mk09_5cells)))
+  
+  # save the table per cell type
+  outdir <- dirname(filename)
+  write.table(sites_with_other_mk09_5cells, file = file.path(outdir, paste0(celltype, "_mk1_common_mk09_5cells.txt")), sep = "\t", row.names = FALSE, quote = FALSE, col.names = TRUE)
+}
+
+# run test_mk1_mk09 for all cell types
+for (celltype in unique(cluster_df$cell_type)) {
+  test_mk1_mk09_5cells(celltype)
+}
+
+```
+
+Get a table with the genes with at least 1 position with m/k = 1 in a cell type, and an m6a with m/k < 0.9 in at least one cell of another cell type
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+test_mk1_mk09_genes <- function(celltype) {
+  mk1_genes <- yth_data_cluster_labeled %>%
+    filter(cell_type == celltype,
+           dart_freq == 1) %>%
+    select(gene) %>%
+    distinct()
+
+  common_genes <- yth_data_cluster_labeled %>%
+    filter(cell_type != celltype) %>%
+    semi_join(mk1_genes, by = c("gene")) %>%
+    select(gene) %>%
+    distinct()
+
+  other_celltypes <- yth_data_cluster_labeled %>%
+    filter(cell_type != celltype) %>%
+    filter(dart_freq < 0.9)
+
+  genes_with_other_mk09 <- mk1_genes %>%
+    inner_join(other_celltypes, by = c("gene")) %>%
+    group_by(gene) %>%
+    summarise(n_cells = n_distinct(cell_id))
+
+
+print(sprintf("%s genes have at least 1 position with m/k = 1 in %s", nrow(mk1_genes), celltype))
+print(sprintf("Of those genes, %s are also found in at least one cell of another cell type", nrow(common_genes)))
+print(sprintf("Of those %s genes, %s have an m6a with m/k < 0.9 in at least 1 cell of another cell type", nrow(distinct(common_genes)), nrow(filter(genes_with_other_mk09, n_cells > 0))))
+
+# save the table per cell type
+outdir <- dirname(filename)
+write.table(genes_with_other_mk09, file = file.path(outdir, paste0(celltype, "_genes_mk1_common_mk09.txt")), sep = "\t", row.names = FALSE, quote = FALSE, col.names = TRUE)
+
+}
+
+# run test_mk1_mk09_genes for all cell types
+for (celltype in unique(cluster_df$cell_type)) {
+  test_mk1_mk09_genes(celltype)
+}
+```
