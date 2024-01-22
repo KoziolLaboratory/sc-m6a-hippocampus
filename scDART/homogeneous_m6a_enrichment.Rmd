@@ -1,0 +1,245 @@
+---
+title: "Analysis of m/k = 1"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Enrichment analyses on variants with m/k = 1 from single-cell data.
+
+#### Enrichment analysis
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+library(tidyverse)
+library(clusterProfiler)
+library(AnnotationDbi)
+library(org.Mm.eg.db)
+library(enrichplot)
+
+doGOEnrichment <- function(genelist, alpha) {
+  genelist <- genelist[!is.na(genelist)]
+  genelist <- as.character(genelist)
+  genes_entrez <- AnnotationDbi::select(org.Mm.eg.db, keys = genelist, columns = "ENTREZID", keytype = "ALIAS", multiVals = "first") 
+  genes_entrez_min <- genes_entrez %>% 
+  group_by(ALIAS) %>%
+  dplyr::slice(1) %>%
+  ungroup()
+  kk <- enrichGO(gene          = unique(genes_entrez_min$ENTREZID), 
+                 OrgDb      = org.Mm.eg.db, 
+                 ont = "ALL",
+                 pvalueCutoff  = alpha, 
+                 pAdjustMethod = "BH", 
+                 qvalueCutoff  = alpha)
+  p <- barplot(kk, showCategory = 20) +
+  ylab("Count") +
+  theme(legend.position = "bottom",
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 8))
+  print(p)
+  q <- dotplot(kk, showCategory = 20) +
+    theme(legend.position = "bottom",
+          legend.box = "vertical",
+          legend.margin = margin(),
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 8))
+  print(q)
+  # BgRatio tells us out of the human genes annotated in KEGG, i.e. the universe, how many are involved in the pathway (hence, it is independent of our input list); Generatio is the number of genes in our list which are annotated to the pathway, divided by the intersection between the genes in our list and the universe.
+  enrichment.summary <- kk@result
+  M <- sub("/.*", "", as.character(enrichment.summary$"BgRatio"))
+  Count <- paste(enrichment.summary$"Count", M, sep = "/")
+  enrichment.summary <- as.data.frame(enrichment.summary)
+  enrichment.summary[["RichFactor"]] <- Count
+  if (!(nrow(enrichment.summary))) {
+    return("No enriched pathways found.")
+  }
+  enrichment.summary <- as.data.frame(enrichment.summary[, c("Description", "pvalue", "qvalue", "RichFactor", "geneID")])
+  # barplot of the top 20 enriched pathways with richfactor in the x axis
+  enrichment.summary$rich_factor_parsed <- sapply(enrichment.summary$RichFactor, function(frac) eval(parse(text = frac)))
+  p <- enrichment.summary %>%
+    arrange(qvalue) %>%
+    head(n = 20) %>%
+    ggplot(aes(x = reorder(Description, -qvalue), y = rich_factor_parsed, fill = qvalue)) +
+    geom_bar(stat="identity") +
+    theme_bw() +
+    ylab("Rich score") +
+    coord_flip() +
+    theme(axis.title.y = element_blank(),
+          axis.title.x = element_text(size = 8),
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 8),
+          legend.position = "bottom",
+          legend.title = element_text(size = 7),
+          legend.box = "horizontal",
+          legend.text = element_text(size = 5))
+  print(p)
+# 
+  return(enrichment.summary)
+}
+
+```
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+genes_per_ctype <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/bullseye/genes_per_ctype.rds")
+```
+
+## IMC:
+
+```{r imc, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+alpha <- 0.05
+GO_IMC <- doGOEnrichment(genes_per_ctype[["IMC"]], alpha = alpha)
+```
+
+## OLG:
+
+```{r olg, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+GO_OLG <- doGOEnrichment(genes_per_ctype[["OLG"]], alpha = alpha)
+```
+
+## NEUR:
+
+```{r neur, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+GO_NEUR <- doGOEnrichment(genes_per_ctype[["NEUR"]], alpha = alpha)
+```
+
+## EC:
+
+```{r ec, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf'), fig.height = 6, fig.width = 9}
+# I create a separate chunk for EC as I want to control the figure size for it
+GO_EC <- doGOEnrichment(genes_per_ctype[["EC"]], alpha = alpha)
+```
+
+## ASC:
+
+```{r asc, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+GO_ASC <- doGOEnrichment(genes_per_ctype[["ASC"]], alpha = alpha)
+```
+
+##### Gene ontology enrichment analysis with stringent list
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+common_mk09_5cells_IMC <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/bullseye/common_mk09_5cells_IMC.RDS")
+common_mk09_5cells_OLG <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/bullseye/common_mk09_5cells_OLG.RDS")
+common_mk09_5cells_NEUR <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/bullseye/common_mk09_5cells_NEUR.RDS")
+common_mk09_5cells_EC <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/bullseye/common_mk09_5cells_EC.RDS")
+common_mk09_5cells_ASC <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/bullseye/common_mk09_5cells_ASC.RDS")
+```
+
+## IMC:
+
+```{r imc-string, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+GO_IMC_common <- doGOEnrichment(unique(common_mk09_5cells_IMC$gene), alpha = alpha)
+```
+
+## OLG:
+
+```{r olg-string, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+GO_OLG_common <- doGOEnrichment(unique(common_mk09_5cells_OLG$gene), alpha = alpha)
+```
+
+## NEUR:
+
+```{r neur-string, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+GO_NEUR_common <- doGOEnrichment(unique(common_mk09_5cells_NEUR$gene), alpha = alpha)
+```
+
+## EC:
+
+```{r ec-string, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf'), fig.height = 6, fig.width = 9}
+# I create a separate chunk for EC as I want to control the figure size for it
+GO_EC_common <- doGOEnrichment(unique(common_mk09_5cells_EC$gene), alpha = alpha)
+```
+
+## ASC:
+
+```{r asc-string, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+GO_ASC_common <- doGOEnrichment(unique(common_mk09_5cells_ASC$gene), alpha = alpha)
+```
+
+#### DisGenet analysis
+
+## ASC:
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+library(biomaRt)
+library(DOSE)
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl", host = "https://dec2021.archive.ensembl.org/") 
+mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl", host = "https://dec2021.archive.ensembl.org/") 
+
+find_human_orthologs <- function(genes, human_mart, mouse_mart) {
+  # find human orthologs of mouse genes
+  ort_table <- getLDS(mart = mouse_mart, attributes = c("ensembl_gene_id", "external_gene_name", "entrezgene_id"), filters = "external_gene_name", values = as.character(genes), attributesL = c("ensembl_gene_id", "external_gene_name", "entrezgene_id"), martL = human_mart)
+  colnames(ort_table) <- c("mouse_ensembl_gene_id", "mouse_hgnc_symbol", "mouse_entrezid", "human_ensembl_gene_id", "human_hgnc_symbol", "human_entrezid")
+  # if there are repeated orthologues, keep one randomly
+  ort_table_min <- ort_table %>% 
+    group_by(mouse_hgnc_symbol) %>%
+    dplyr::slice(1) %>%
+    ungroup()
+  return(ort_table_min)
+}
+
+enrich_dgn <- function(genes) {
+  dgn <- enrichDGN(genes)
+  enrichment.summary <- dgn@result
+  M <- sub("/.*", "", as.character(enrichment.summary$"BgRatio"))
+  Count <- paste(enrichment.summary$"Count", M, sep = "/")
+  enrichment.summary <- as.data.frame(enrichment.summary)
+  enrichment.summary[["RichFactor"]] <- Count
+  if (!(nrow(enrichment.summary))) {
+    return("No enriched pathways found.")
+  }
+  enrichment.summary <- as.data.frame(enrichment.summary[, c("ID", "Description", "pvalue", "qvalue", "RichFactor", "geneID")])
+  return(enrichment.summary)
+}
+```
+
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+imc_ort_table <- find_human_orthologs(genes = genes_per_ctype[["IMC"]], human_mart = human, mouse_mart = mouse)
+imc_dgn <- enrich_dgn(genes = imc_ort_table$human_entrezid)
+
+olg_ort_table <- find_human_orthologs(genes = genes_per_ctype[["OLG"]], human_mart = human, mouse_mart = mouse)
+olg_dgn <- enrich_dgn(genes = olg_ort_table$human_entrezid)
+
+neur_ort_table <- find_human_orthologs(genes = genes_per_ctype[["NEUR"]], human_mart = human, mouse_mart = mouse)
+neur_dgn <- enrich_dgn(genes = neur_ort_table$human_entrezid)
+
+ec_ort_table <- find_human_orthologs(genes = genes_per_ctype[["EC"]], human_mart = human, mouse_mart = mouse)
+ec_dgn <- enrich_dgn(genes = ec_ort_table$human_entrezid)
+
+asc_ort_table <- find_human_orthologs(genes = genes_per_ctype[["ASC"]], human_mart = human, mouse_mart = mouse)
+asc_dgn <- enrich_dgn(genes = asc_ort_table$human_entrezid)
+
+# stringent:
+imc_string_ort_table <- find_human_orthologs(genes = unique(common_mk09_5cells_IMC$gene), human_mart = human, mouse_mart = mouse)
+imc_string_dgn <- enrich_dgn(genes = imc_string_ort_table$human_entrezid)
+
+olg_string_ort_table <- find_human_orthologs(genes = unique(common_mk09_5cells_OLG$gene), human_mart = human, mouse_mart = mouse)
+olg_string_dgn <- enrich_dgn(genes = olg_string_ort_table$human_entrezid)
+
+neur_string_ort_table <- find_human_orthologs(genes = unique(common_mk09_5cells_NEUR$gene), human_mart = human, mouse_mart = mouse)
+neur_string_dgn <- enrich_dgn(genes = neur_string_ort_table$human_entrezid)
+
+ec_string_ort_table <- find_human_orthologs(genes = unique(common_mk09_5cells_EC$gene), human_mart = human, mouse_mart = mouse)
+ec_string_dgn <- enrich_dgn(genes = ec_string_ort_table$human_entrezid)
+
+asc_string_ort_table <- find_human_orthologs(genes = unique(common_mk09_5cells_ASC$gene), human_mart = human, mouse_mart = mouse)
+asc_string_dgn <- enrich_dgn(genes = asc_string_ort_table$human_entrezid)
+
+
+outdir <- "/GPFS/Magda_lab_temp/maitenat/scs/bullseye"
+write.table(asc_dgn, file = file.path(outdir, "ASC_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(ec_dgn, file = file.path(outdir, "EC_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(neur_dgn, file = file.path(outdir, "NEUR_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(olg_dgn, file = file.path(outdir, "OLG_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(imc_dgn, file = file.path(outdir, "IMC_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(asc_string_dgn, file = file.path(outdir, "ASC_string_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(ec_string_dgn, file = file.path(outdir, "EC_string_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(neur_string_dgn, file = file.path(outdir, "NEUR_string_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(olg_string_dgn, file = file.path(outdir, "OLG_string_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(imc_string_dgn, file = file.path(outdir, "IMC_string_dgn.txt"), sep = "\t", quote = FALSE, row.names = FALSE)
+```
+
