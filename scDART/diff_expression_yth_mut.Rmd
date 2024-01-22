@@ -25,6 +25,7 @@ p_val_adj: Adjusted p-value, based on Bonferroni correction using all features i
 library(tidyverse)
 library(RColorBrewer)
 library(Seurat)
+library(ggVolcano)
 seurat_data <- readRDS("/GPFS/Magda_lab_temp/maitenat/scs/scDART_integrated_seurat.rds")
 
 immune_cells <- as.character(c(0, 1, 4, 8, 9, 10, 14, 15, 17, 18, 19, 20, 21, 24, 25, 27))
@@ -46,6 +47,13 @@ Idents(object = seurat_data) <- "orig.ident"
 yth_mut_de_markers <- FindMarkers(seurat_data, ident.1 = "6J_yth", ident.2 = "6J_ythmut")
 yth_mut_de_markers[yth_mut_de_markers$p_val_adj < alpha, ]
 write.table(yth_mut_de_markers[yth_mut_de_markers$p_val_adj < alpha, ], file = "yth_mut_de_markers.txt", sep = "\t", quote = FALSE, row.names = TRUE)
+# volcano plot
+yth_mut_de_markers_gg <- add_regulate(yth_mut_de_markers, log2FC_name = "avg_logFC", fdr_name = "p_val_adj", log2FC = 0.5, fdr = 0.05)
+yth_mut_de_markers$gene <- rownames(yth_mut_de_markers)
+
+ggvolcano(yth_mut_de_markers, x = "log2FoldChange", y = "p_val_adj", label = "gene", label_number = 5, output = FALSE)
+
+gradual_volcano(yth_mut_de_markers, x = "log2FoldChange", y = "p_val_adj", label = "gene", label_number = 5, output = FALSE)
 ```
 
 #### Cluster-wise
@@ -96,4 +104,36 @@ walk(1:nrow(tests), function(i) {
 
 ```
 
+Scatter-plot:
 
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+gene_exp <- GetAssayData(seurat_data, assay = "RNA")
+scRNA$Sample  <- scRNA$orig.ident
+Idents(scRNA) <- scRNA$Sample
+table(scRNA$Sample)
+
+sample1 <- subset(scRNA, idents = "6J_yth")
+sample2 <- subset(scRNA, idents = "6J_ythmut")
+
+avg_expr_sample1 <- as.data.frame(rowMeans(GetAssayData(sample1, slot = "data")))
+avg_expr_sample2 <- as.data.frame(rowMeans(GetAssayData(sample2, slot = "data")))
+
+gene_matrix <- data.frame(
+  gene = rownames(avg_expr_sample1),
+  yth = avg_expr_sample1,
+  ythmut = avg_expr_sample2
+)
+
+cor.test(log(gene_matrix[, 2] + 1), log(gene_matrix[, 3] + 1))
+cor_val <- as.numeric(cor.test(log(gene_matrix[, 2] + 1), log(gene_matrix[, 3] + 1))$estimate)
+
+
+ggplot(data = gene_matrix, aes(x = log10(yth + 1), y = log10(ythmut + 1))) +
+  geom_point(shape = 1) +
+  theme(aspect.ratio = 1,
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")) +
+  geom_text(aes(x = 0.1, y = 0.6, label = paste("r =", round(cor_val, 2))), family = "serif", fontface = "italic", size = 8)
+```
