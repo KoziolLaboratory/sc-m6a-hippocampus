@@ -34,19 +34,19 @@ doGOEnrichment <- function(genelist, alpha) {
                  pvalueCutoff  = alpha, 
                  pAdjustMethod = "BH", 
                  qvalueCutoff  = alpha)
-  p <- barplot(kk, showCategory = 20) +
-  ylab("Count") +
-  theme(legend.position = "bottom",
-          axis.text.y = element_text(size = 8),
-          axis.text.x = element_text(size = 8))
-  print(p)
-  q <- dotplot(kk, showCategory = 20) +
-    theme(legend.position = "bottom",
-          legend.box = "vertical",
-          legend.margin = margin(),
-          axis.text.y = element_text(size = 8),
-          axis.text.x = element_text(size = 8))
-  print(q)
+  # p <- barplot(kk, showCategory = 20) +
+  # ylab("Count") +
+  # theme(legend.position = "bottom",
+  #         axis.text.y = element_text(size = 8),
+  #         axis.text.x = element_text(size = 8))
+  # print(p)
+  # q <- dotplot(kk, showCategory = 20) +
+  #   theme(legend.position = "bottom",
+  #         legend.box = "vertical",
+  #         legend.margin = margin(),
+  #         axis.text.y = element_text(size = 8),
+  #         axis.text.x = element_text(size = 8))
+  # print(q)
   # BgRatio tells us out of the human genes annotated in KEGG, i.e. the universe, how many are involved in the pathway (hence, it is independent of our input list); Generatio is the number of genes in our list which are annotated to the pathway, divided by the intersection between the genes in our list and the universe.
   enrichment.summary <- kk@result
   M <- sub("/.*", "", as.character(enrichment.summary$"BgRatio"))
@@ -59,23 +59,23 @@ doGOEnrichment <- function(genelist, alpha) {
   enrichment.summary <- as.data.frame(enrichment.summary[, c("Description", "pvalue", "qvalue", "RichFactor", "geneID")])
   # barplot of the top 20 enriched pathways with richfactor in the x axis
   enrichment.summary$rich_factor_parsed <- sapply(enrichment.summary$RichFactor, function(frac) eval(parse(text = frac)))
-  p <- enrichment.summary %>%
-    arrange(qvalue) %>%
-    head(n = 20) %>%
-    ggplot(aes(x = reorder(Description, -qvalue), y = rich_factor_parsed, fill = qvalue)) +
-    geom_bar(stat="identity") +
-    theme_bw() +
-    ylab("Rich score") +
-    coord_flip() +
-    theme(axis.title.y = element_blank(),
-          axis.title.x = element_text(size = 8),
-          axis.text.y = element_text(size = 8),
-          axis.text.x = element_text(size = 8),
-          legend.position = "bottom",
-          legend.title = element_text(size = 7),
-          legend.box = "horizontal",
-          legend.text = element_text(size = 5))
-  print(p)
+  # p <- enrichment.summary %>%
+  #   arrange(qvalue) %>%
+  #   head(n = 20) %>%
+  #   ggplot(aes(x = reorder(Description, -qvalue), y = rich_factor_parsed, fill = qvalue)) +
+  #   geom_bar(stat="identity") +
+  #   theme_bw() +
+  #   ylab("Rich score") +
+  #   coord_flip() +
+  #   theme(axis.title.y = element_blank(),
+  #         axis.title.x = element_text(size = 8),
+  #         axis.text.y = element_text(size = 8),
+  #         axis.text.x = element_text(size = 8),
+  #         legend.position = "bottom",
+  #         legend.title = element_text(size = 7),
+  #         legend.box = "horizontal",
+  #         legend.text = element_text(size = 5))
+  # print(p)
 # 
   return(enrichment.summary)
 }
@@ -108,7 +108,6 @@ GO_NEUR <- doGOEnrichment(genes_per_ctype[["NEUR"]], alpha = alpha)
 ## EC:
 
 ```{r ec, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf'), fig.height = 6, fig.width = 9}
-# I create a separate chunk for EC as I want to control the figure size for it
 GO_EC <- doGOEnrichment(genes_per_ctype[["EC"]], alpha = alpha)
 ```
 
@@ -149,7 +148,6 @@ GO_NEUR_common <- doGOEnrichment(unique(common_mk09_5cells_NEUR$gene), alpha = a
 ## EC:
 
 ```{r ec-string, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf'), fig.height = 6, fig.width = 9}
-# I create a separate chunk for EC as I want to control the figure size for it
 GO_EC_common <- doGOEnrichment(unique(common_mk09_5cells_EC$gene), alpha = alpha)
 ```
 
