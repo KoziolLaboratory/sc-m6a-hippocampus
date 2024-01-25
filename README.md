@@ -51,7 +51,28 @@ For the analysis of HEK293T cell line data, the following scripts are called, in
 
 ### scDART
 
-TODO
+The `scDART` folder contains the data for the analysis of single-cell dartseq data. The starting data for these scripts are the RSEC metrics obtained from the Rhapsody software. The scripts in this section should be run in the order listed. 
+
+
+1. `make_bullseye_mat.sbatch`
+2. `find_edit_sites.sbatch`
+3. `filter_bullseye.sbatch`
+4. `integr_scDART.Rmd`
+5. `scibet_tm.R`
+6. `scMCA_mice.R`
+7. `call_metaplotR.sbatch`
+8. `m6a_analysis.Rmd`
+9. `m6a_UMAP.Rmd`
+10. `diff_expression_yth_mut.Rmd`
+
+For the homogeneous m6A analysis:
+
+1. `get_homogeneous_m6a.Rmd`
+2. `call_metaplotR_homogeneous.sbatch`
+3. `prepare_mk1_metaplootr.R`
+4. `compare_m6a.Rmd`
+5. `homogeneous_m6a_enrichment.Rmd`
+
 
 ### MeRIP
 
@@ -77,25 +98,53 @@ The `sc_bulk_MeRIP` folder contains a script for the comparison of the results o
 
 ## Requirements
 
-TO BE COMPLETED
-
 This project requires the following tools and libraries:
 
 ### Software
-- [R](https://www.r-project.org/) (version 3.5 or later)
+- [R](https://www.r-project.org/)
+- [Perl](https://www.perl.org/)
+- [Python](https://www.python.org)
 - [HISAT2](http://daehwankimlab.github.io/hisat2/) for read alignment
+- [BWA](http://bio-bwa.sourceforge.net/) for read alignment
+- [Bowtie](http://bowtie-bio.sourceforge.net/index.shtml) for read alignment
 - [samtools](http://www.htslib.org/) for manipulating aligned reads
+- [HTSlib](http://www.htslib.org/) for high-throughput sequencing data processing
+- [Tabix](http://www.htslib.org/doc/tabix.html) for indexing and retrieving data in tab-delimited text files
+- [bedtools](https://bedtools.readthedocs.io/) for genome arithmetic
+- [Picard](https://broadinstitute.github.io/picard/) for manipulating high-throughput sequencing data
+- [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) for quality control checks on raw sequence data
+- [MultiQC](https://multiqc.info/) for aggregating quality control checks
 - [cutadapt](https://cutadapt.readthedocs.io/en/stable/) for adapter trimming
+- [MACS2](https://github.com/macs3-project/MACS) for peak calling
+- [CTK](https://zhanglab.ccmb.med.umich.edu/CTK/) for bulk dart-seq data analysis
+- [Bullseye](https://github.com/Boyle-Lab/Bullseye) for single-cell dart-seq data analysis
 
 
 ### R Libraries
-- [ggplot2](https://ggplot2.tidyverse.org/) for data visualization
-- [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) for differential expression analysis
+- [tidyverse](https://www.tidyverse.org/) for data manipulation and visualization
+- [VennDiagram](https://cran.r-project.org/web/packages/VennDiagram/index.html) for generating Venn diagrams
+- [RColorBrewer](https://cran.r-project.org/web/packages/RColorBrewer/index.html) for color palettes
+- [Seurat](https://satijalab.org/seurat/) for single cell genomics
+- [Nebulosa](https://github.com/krassowski/nebulosa) for visualization of single-cell RNA-seq data
+- [scibet](https://github.com/BGI-shenzhen/scibet) for cell type identification
+- [scMCA](https://github.com/SCA-IRCM/SingleCellMultiOmics) for multi-omics data analysis
+- [scales](https://scales.r-lib.org/) for graphical scales mapping
+- [ggVolcano](https://cran.r-project.org/web/packages/ggVolcano/index.html) for creating volcano plots
+- [clusterProfiler](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html) for comparing and visualizing functional profiles
+- [AnnotationDbi](https://bioconductor.org/packages/release/bioc/html/AnnotationDbi.html) for annotation database interfaces
+- [org.Mm.eg.db](https://bioconductor.org/packages/release/data/annotation/html/org.Mm.eg.db.html) for organism annotations
+- [biomaRt](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) for BioMart databases
+- [enrichplot](https://bioconductor.org/packages/release/bioc/html/enrichplot.html) for visualization of functional enrichment result
+- [DOSE](https://bioconductor.org/packages/release/bioc/html/DOSE.html) for disease ontology semantic and enrichment analysis
+
 
 ### Data
-- Reference genome (e.g., GRCm39 for mouse)
+- Reference genomes (GRCm39/mm39, hg19)
 - Adapter sequences for the sequencing platform used
-- Raw sequencing data in FASTQ format
+- Tabula Muris Brain Non-Myeloid model (GSE109774_scibet_core.csv)
+- Gene annotations (GRCm39_gencode, hg19_gencode)
+- Variant annotations (mgp_REL2021_snps.bed, common_all_20180423_snps.bed, GCA_000001635.9_current_ids.bed)
+
 
 ### Job Scheduler
 - [SLURM](https://slurm.schedmd.com/overview.html) for job scheduling on a high-performance computing cluster. Many of the scripts in this project are written as SLURM batch scripts and require SLURM for execution. However, these SLURM scripts are essentially shell scripts. If you are not using SLURM, you can adapt them to run as regular bash scripts with some minimal knowledge of bash scripting.
