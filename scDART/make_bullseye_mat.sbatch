@@ -7,9 +7,6 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=80G
 #SBATCH --partition=q_fat
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=maitenat@gmail.com
-
 
 module load bullseye/bullseye_20220908
 module load htslib/1.9

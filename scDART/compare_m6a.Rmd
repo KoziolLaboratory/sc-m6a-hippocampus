@@ -1,0 +1,220 @@
+---
+title: "Comparison of C>T variants according to m/k value"
+output:
+  html_document:
+    self_contained: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document we compare the distribution within 500 nucleotides of the stop codon for variants with m/k=1 (conserved variants), all variants, and variants with m/k<1
+
+### Conserved variants (m/k = 1 in cell type and at least 5 cells of other cell types with m/k < 1)
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+
+#### IMC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/immune_cells_mk1_common_mk09_5cells.dist.measures.txt"
+m6a.dist.imc <- read.delim(cds_file, header = T)
+m6a.dist.imc <- m6a.dist.imc %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.imc <- m6a.dist.imc %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+#### OLG
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/oligodendrocytes_mk1_common_mk09_5cells.dist.measures.txt"
+m6a.dist.olg <- read.delim(cds_file, header = T)
+m6a.dist.olg <- m6a.dist.olg %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.olg <- m6a.dist.olg %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+#### NEUR
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/neurons_mk1_common_mk09_5cells.dist.measures.txt"
+m6a.dist.neur <- read.delim(cds_file, header = T)
+m6a.dist.neur <- m6a.dist.neur %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.neur <- m6a.dist.neur %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+#### EC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/endothelial_mk1_common_mk09_5cells.dist.measures.txt"
+m6a.dist.ec <- read.delim(cds_file, header = T)
+m6a.dist.ec <- m6a.dist.ec %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.ec <- m6a.dist.ec %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+#### ASC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/astrocytes_mk1_common_mk09_5cells.dist.measures.txt"
+m6a.dist.asc <- read.delim(cds_file, header = T)
+m6a.dist.asc <- m6a.dist.asc %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.asc <- m6a.dist.asc %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+m6a.dist <- bind_rows(IMC = m6a.dist.imc, OLG = m6a.dist.olg, NEUR = m6a.dist.neur, EC = m6a.dist.ec, ASC = m6a.dist.asc, .id = "cell_type")
+ggplot(m6a.dist, aes(x = utr3_st, colour = cell_type, fill = cell_type)) +
+  geom_density(alpha = 0.6) +
+  xlim(-500, 500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+ggplot(m6a.dist, aes(x = utr3_st, colour = cell_type, fill = cell_type)) +
+  geom_density(aes(y = ..count..), alpha=0.5) +
+  xlim(-500, 500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw() +
+  theme(legend.title = element_blank()) +
+  ylab("normalized density")
+```
+
+#### All the variants 
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+
+##### IMC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_IMC.dist.measures.txt"
+m6a.dist.imc <- read.delim(cds_file, header = T)
+m6a.dist.imc <- m6a.dist.imc %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.imc <- m6a.dist.imc %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+##### OLG
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_OLG.dist.measures.txt"
+m6a.dist.olg <- read.delim(cds_file, header = T)
+m6a.dist.olg <- m6a.dist.olg %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.olg <- m6a.dist.olg %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+##### NEUR
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_NEUR.dist.measures.txt"
+m6a.dist.neur <- read.delim(cds_file, header = T)
+m6a.dist.neur <- m6a.dist.neur %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.neur <- m6a.dist.neur %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+##### EC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_EC.dist.measures.txt"
+m6a.dist.ec <- read.delim(cds_file, header = T)
+m6a.dist.ec <- m6a.dist.ec %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.ec <- m6a.dist.ec %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+
+##### ASC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_ASC.dist.measures.txt"
+m6a.dist.asc <- read.delim(cds_file, header = T)
+m6a.dist.asc <- m6a.dist.asc %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.asc <- m6a.dist.asc %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+
+##### The 5 of them alltogether
+
+m6a.dist <- bind_rows(IMC = m6a.dist.imc, OLG = m6a.dist.olg, NEUR = m6a.dist.neur, EC = m6a.dist.ec, ASC = m6a.dist.asc, .id = "cell_type")
+ggplot(m6a.dist, aes(x = utr3_st, colour = cell_type, fill = cell_type)) +
+  geom_density(alpha = 0.6) +
+  xlim(-500, 500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+ggplot(m6a.dist, aes(x = utr3_st, colour = cell_type, fill = cell_type)) +
+  geom_density(aes(y = ..count..), alpha=0.5) +
+  xlim(-500, 500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw() +
+  theme(legend.title = element_blank()) +
+  ylab("normalized density")
+```
+
+
+#### All the variants with m/k<1
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE, dev=c('png', 'pdf')}
+
+##### IMC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_mk_leq1_IMC.dist.measures.txt"
+m6a.dist.imc <- read.delim(cds_file, header = T)
+m6a.dist.imc <- m6a.dist.imc %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.imc <- m6a.dist.imc %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+##### OLG
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_mk_leq1_OLG.dist.measures.txt"
+m6a.dist.olg <- read.delim(cds_file, header = T)
+m6a.dist.olg <- m6a.dist.olg %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.olg <- m6a.dist.olg %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+##### NEUR
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_mk_leq1_NEUR.dist.measures.txt"
+m6a.dist.neur <- read.delim(cds_file, header = T)
+m6a.dist.neur <- m6a.dist.neur %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.neur <- m6a.dist.neur %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+##### EC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_mk_leq1_EC.dist.measures.txt"
+m6a.dist.ec <- read.delim(cds_file, header = T)
+m6a.dist.ec <- m6a.dist.ec %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.ec <- m6a.dist.ec %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+
+##### ASC
+cds_file <- "/GPFS/Magda_lab_temp/maitenat/scs/metaplotR/6J-3M-2ws-V2-3-YTH_edit-sites_bc_filtered_all_yth_filt-all_mk_leq1_ASC.dist.measures.txt"
+m6a.dist.asc <- read.delim(cds_file, header = T)
+m6a.dist.asc <- m6a.dist.asc %>%
+  mutate(trx_len = utr5_size + cds_size + utr3_size)
+m6a.dist.asc <- m6a.dist.asc %>%
+  group_by(chr, coord, gene_name, cell_id) %>%
+  filter(trx_len == max(trx_len))
+
+
+##### The 5 of them alltogether
+
+m6a.dist <- bind_rows(IMC = m6a.dist.imc, OLG = m6a.dist.olg, NEUR = m6a.dist.neur, EC = m6a.dist.ec, ASC = m6a.dist.asc, .id = "cell_type")
+ggplot(m6a.dist, aes(x = utr3_st, colour = cell_type, fill = cell_type)) +
+  geom_density(alpha = 0.6) +
+  xlim(-500, 500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw() +
+  theme(legend.title = element_blank())
+
+ggplot(m6a.dist, aes(x = utr3_st, colour = cell_type, fill = cell_type)) +
+  geom_density(aes(y = ..count..), alpha=0.5) +
+  xlim(-500, 500) + 
+  geom_vline(xintercept = 1:2, col = "grey") + 
+  theme_bw() +
+  theme(legend.title = element_blank()) +
+  ylab("normalized density")
+```
+
